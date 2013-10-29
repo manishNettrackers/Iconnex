@@ -1,0 +1,3 @@
+[03-Oct-2013 06:18:25 America/Chicago] PHP Fatal error:  Call to a member function getErrors() on a non-object in /home/nttests/public_html/disweb/viewer/framework/web/helpers/CHtml.php on line 1765
+[04-Oct-2013 01:26:03 America/Chicago] PHP Fatal error:  Call to a member function getErrors() on a non-object in /home/nttests/public_html/disweb/viewer/framework/web/helpers/CHtml.php on line 1765
+[25-Oct-2013 13:29:21 America/Chicago] PHP Fatal error:  __clone method called on non-object in /home/nttests/public_html/disweb/viewer/iconnex/protected/modules/preferences/controllers/PreferencesController.php on line 39

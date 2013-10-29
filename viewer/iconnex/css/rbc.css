@@ -1,0 +1,150 @@
+#adminmenu
+{
+    margin-top: 3px;
+}
+
+#headerrbc
+{
+    margin: 0;
+    padding: 0;
+    height: 50px;
+    display: block;
+}
+
+#contentrbc
+{
+    padding-top: 0px;
+    padding-left: 0px;
+    padding-right: 1px;
+    background: transparent url(../images/rbcsoftline.png) repeat-x top;
+}
+
+#criteriacol
+{
+    margin-top: 0px;
+    height: 100%;
+    width: 20%;
+    float: left;
+}
+
+
+#toolbarform
+{
+    padding: 5px 0px;
+}
+
+
+#headerleftrbc
+{
+    background: #57183e url(../images/rbcback.gif) repeat-x bottom;
+    float: left;
+}
+
+#companylogoright
+{
+	font-size: 200%;
+    height: 100%;
+    width: 300px;
+    float: right;
+    background: transparent url(../images/rbc.png) no-repeat right top;
+}
+
+#tm-nav-container
+{
+    height: 100%;
+}
+
+
+#mainmenurbc 
+{
+    float: left;
+}
+
+#mainmenurbc ul
+{
+    padding:6px 20px 5px 20px;
+    margin:0px;
+}
+
+#mainmenurbc ul li
+{
+    display: inline;
+}
+
+#mainmenurbc ul li a
+{
+    color:#ffffff;
+    background-color:transparent;
+    font-size:12px;
+    font-weight:bold;
+    text-decoration:none;
+    padding:5px 8px;
+}
+
+#mainmenurbc ul li a:hover, #mainmenu ul li.active a
+{
+    color: #6399cd;
+    background-color:#EFF4FA;
+    text-decoration:none;
+}
+
+#sitetitle
+{
+    float: left;
+    padding: 10px 20px;
+    font-size: 200%;
+    color:#666666;
+    background-color:#ffffff;
+}
+
+#rgbmainmenu
+{
+    float: left;
+	padding-top: 20px;
+    margin-bottom: 8px;
+	color:#ffffbb;
+    height: 80px;
+    font-family: Trebuchet MS;
+}
+
+#rgbdriver
+{
+	font-size: 200%;
+	padding: 10px 20px;
+    float: left;
+    width: 20%;
+	color:#ffffff;
+}
+
+#rgbnavmenu
+{
+    float: left;
+	font-size: 200%;
+    width: 20%;
+	color:#ffffff;
+}
+
+#rgblogo
+{
+    float: left;
+	padding: 10px 20px;
+	font-size: 200%;
+	color:#ffffbb;
+}
+
+.menubutton
+{
+    height: 80px;
+    text-align: center;
+    vertical-align: center;
+    background-color: #f0fd9f;
+    width: 100%;
+    margin-bottom: 4px;
+    background: transparent url(../images/rgbbgbutton.png) no-repeat;
+}
+
+
+#tm-nav-bar
+{
+    background: none;
+}

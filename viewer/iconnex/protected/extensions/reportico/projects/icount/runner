@@ -1,0 +1,14 @@
+for i in bak/*
+do
+new=`basename $i`
+cat $i | sed -e "s/archive_rt_loc/timetable_visit_fact/g" \
+       -e "s/rpat_orderby/sequence/g" \
+       -e "s/passenger_count/people_count_fact/g" \
+       -e "s/archive_rt/timetable_journey_fact/g" \
+       -e "s/pubish_tt/timetable_journey/g" \
+       -e "s/pub_ttb_id/fact_id/g" \
+       -e "s/vehicle,/vehicle_dimension vehicle,/g" \
+       -e "s/location,/location_dimension location,/g" \
+       -e "s/route,/route_dimension route,/g" \
+       -e "s/schedule_id/fact_id/g" > $new
+done

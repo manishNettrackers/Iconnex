@@ -1,0 +1,47 @@
+
+
+#dashboardview {
+  width: 100%;
+  border: 0px solid #ccc;
+  margin: 0px;
+  height: 440px;
+  padding: 0px;
+}
+
+
+div.portlet {
+  margin: 0px;
+  padding: 1px;
+  float: left;
+}
+
+.mpflttab { padding: 1px }
+.mpflttab input { margin-left: 8px; }
+
+
+.dashspan-1 { width: 25%; }
+.dashspan-2 { width: 50%; }
+.dashspan-3 { width: 99%; }
+
+.dashrow-1 { height: 49%; }
+.dashrow-2 { height: 74%; }
+.dashrow-3 { height: 100%; }
+
+.portlet { margin: 0 1em 1em 0; }
+
+.portlet-minimized { height: auto !important; }
+
+.portlet-maximized { width: 100%; height: 100%; }
+
+.portlet-header { margin: 0.3em; padding-bottom: 4px; padding-left: 0.2em; }
+
+.portlet-header .ui-icon { float: right; }
+.portlet-header .portlet-widget { float: right; }
+
+.portlet-content { padding: 0.4em; }
+
+.portlet-minimized .portlet-content { display: none !important; }
+
+.ui-sortable-placeholder { border: 1px dotted black; visibility: visible !important; height: 50px !important; }
+
+.ui-sortable-placeholder * { visibility: hidden; }

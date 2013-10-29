@@ -1,0 +1,276 @@
+.theBody {
+margin:0;
+padding:0;
+border:0;
+width:100%;
+min-width:600px;
+font-family:'Trebuchet MS','Tahoma','Arial',san-serif;
+font-size:12px;
+background-color:#ff0000;
+-moz-background-clip:border;
+-moz-background-inline-policy:continuous;
+-moz-background-origin:padding;
+background:#DEDEDE url(../images/page.png) repeat-y scroll center top;
+color:#444444;
+min-height:100%;
+}
+.headerTop {
+background-image:url(../images/header-bg.jpg);
+color:#000000;
+font-family:Arial,Helvetica,sans-serif;
+font-size:12px;
+}
+div#rtpi-title {
+width:800px;
+}
+.mapping1 {
+margin:0 auto 0 auto;
+width:800px;
+border:1px solid #CCCCCC;
+margin-top:20px;
+padding:10px;
+}
+div#searchbar {
+text-align:left;
+width:800px;
+margin-bottom:5px;
+}
+.search {
+height:60px;
+}
+.leftcol {
+float:left;
+width:208px;
+}
+.menupane {
+width:200px;
+height:472px;
+padding:4px;
+background:#efefde;
+}
+.menuheader {
+margin:auto;
+font-size:small;
+font-weight:bold;
+color:#0c2c4c;
+background-color:#e2dfd9;
+border-bottom:1px solid #cecece;
+min-height:26px;
+padding:0 0.2em 0 0.2em;
+}
+.paneheader {
+height:22px;
+margin:auto;
+padding:2px;
+font-size:small;
+font-weight:bold;
+color:#0c2c4c;
+background:#fafae9;
+border-bottom:1px solid #cecece;
+overflow:auto;
+}
+.button {
+float:right;
+border: 1px solid #cecece;
+margin-left:4px;
+}
+.button:hover {
+background-color:#def;
+}
+.panefooter {
+height:30px;
+margin:0 auto 0 auto;
+padding:2px;
+background:#fafae9;
+text-align:center;
+font-size:small;
+font-weight:bold;
+}
+.list {
+height:472px;
+overflow:auto;
+font-size:x-small;
+background-color:#f2efe9;
+}
+div.rresult {
+border-bottom:1px solid #cecece;
+font-size:small;
+min-height:26px;
+padding:0.2em 0 0.2em 0;
+background-color:white;
+}
+.rresult:hover {
+background-color:#def;
+cursor:pointer;
+}
+.rlocs {
+background-color:#f2efe9;
+}
+.rightcol {
+position:relative;
+margin-left:213px;
+}
+div#overlay {
+z-index:1000;
+position:absolute;
+width:336px;
+height:256px;
+left:125px;
+top:112px;
+padding:4px;
+background-color:rgba(0,0,0,0.55);
+visibility:hidden;
+}
+div#nooverlay {
+width:336px;
+height:256px;
+padding:4px;
+background-color:rgba(0,0,0,0.55);
+margin:auto;
+}
+.ocontent {
+z-index:1001;
+width:320px;
+height:240px;
+margin:4px;
+padding:4px;
+background-color:#fff;
+}
+div#depinfo {
+height:171px;
+padding:4px;
+overflow:auto;
+border-bottom:1px solid #cecece;
+}
+div#messages {
+height:41px;
+padding:4px;
+overflow:auto;
+border-bottom:1px solid #cecece;
+background:#efefde;
+display:none;
+}
+div#map {
+width:587px;
+height:480px;
+margin:0px;
+padding:0px;
+}
+div#mstatus {
+z-index:1002;
+width:592px;
+text-align:center;
+position:absolute;
+top:455px;
+left:0px;
+}
+div#mstatus2 {
+z-index:1002;
+width:592px;
+text-align:center;
+position:absolute;
+top:425px;
+left:0;
+}
+.stattxt {
+font-size:xx-small;
+font-weight:bold;
+margin:auto;
+display:none;
+}
+.approaching {
+font-size:x-small;
+margin:auto;
+}
+.dirswitch {
+float:right;
+width:32px;
+overflow:hidden;
+display:none;
+margin:0 4px 0 0;
+}
+.routeicon {
+float:left;
+margin:0;
+padding:0;
+width:48px;
+height:26px;
+}
+.stopicon {
+float:left;
+margin:0;
+padding:0;
+width:48px;
+height:26px;
+}
+.showstops {
+float:left;
+-moz-background-clip:border;
+-moz-background-inline-policy:continuous;
+-moz-background-origin:padding;
+background:transparent url(../images/plusminus.png) no-repeat scroll 0px 8px;
+margin-left:4px;
+padding-top:6px;
+padding-bottom:6px;
+padding-left:10px;
+font-size:x-small;
+overflow:hidden;
+}
+.showstops a:hover {
+text-decoration:underline;
+}
+.stopname {
+margin-left:52px;
+font-size:x-small;
+}
+a.route {
+background:transparent url(../images/route_blob.png) no-repeat scroll left top;
+-moz-background-clip:border;
+-moz-background-inline-policy:continuous;
+-moz-background-origin:padding;
+width:48px;
+height:26px;
+line-height:26px;
+text-align:center;
+float:left;
+font-weight:bold;
+}
+a {
+outline: 0;
+}
+a:link {
+text-decoration:none;
+color:#237Da2;
+}
+a:hover {
+text-decoration:underline;
+}
+a.route:hover {
+background-color:#edf;
+}
+h1, h2, h3 {
+margin:.8em 0 .2em 0;
+padding:0;
+}
+p {
+margin:.2em 0 .2em 0;
+padding:0;
+}
+.linky {
+color:#237Da2;
+}
+img {
+border:0 none;
+}
+div.selrresult a.route:hover {
+background-color:#cde;
+}
+
+/* http://code.google.com/p/curved-corner/ */
+.curved {
+-moz-border-radius:10px;
+-webkit-border-radius:10px;
+-khtml-border-radius:10px;
+border-radius:10px;
+behavior:url(js/border-radius.htc);
+}

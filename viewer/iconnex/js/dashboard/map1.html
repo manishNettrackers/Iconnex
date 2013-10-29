@@ -1,0 +1,27 @@
+<script  type="text/javascript">
+function initialize() {
+  var myLatlng = new google.maps.LatLng(-34.397, 150.644);
+  var myOptions = {
+    zoom: 8,
+    center: myLatlng,
+    mapTypeId: google.maps.MapTypeId.ROADMAP
+  }
+  var map = new google.maps.Map(document.getElementById("map"), myOptions);
+}
+  
+function loadScript() {
+  var script = document.createElement("script");
+  script.type = "text/javascript";
+  script.src = "http://maps.googleapis.com/maps/api/js?sensor=false&callback=initialize";
+  document.body.appendChild(script);
+}
+  
+window.onload = loadScript;
+</script>
+This is a map
+<div id="mapcol" style="height: 90%; margin: 0px 0px 0px 0px; display: inline; width: 100%; float: left;">
+    <div id="mstatus" class="stattxt"></div>
+    <div id="mstatus2" class="stattxt"></div>
+    <div id="map">Loading map...</div>
+</div>
+

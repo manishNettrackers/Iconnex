@@ -1,0 +1,4 @@
+[06-Sep-2013 04:27:15 America/Chicago] PHP Fatal error:  Call to a member function SetFetchMode() on a non-object in /home/nttests/public_html/disweb/viewer/iconnex/protected/extensions/reportico/swdb.php on line 616
+[06-Sep-2013 04:28:17 America/Chicago] PHP Fatal error:  Call to a member function query() on a non-object in /home/nttests/public_html/disweb/viewer/iconnex/protected/extensions/reportico/projects/rti/iconnex.php on line 46
+[06-Sep-2013 04:29:51 America/Chicago] PHP Fatal error:  Call to a member function query() on a non-object in /home/nttests/public_html/disweb/viewer/iconnex/protected/extensions/reportico/projects/rti/iconnex.php on line 46
+[26-Sep-2013 06:40:12 America/Chicago] PHP Fatal error:  Class 'iconnex' not found in /home/nttests/public_html/disweb/viewer/iconnex/protected/extensions/reportico/projects/rti/iconnexextra.class.php on line 11

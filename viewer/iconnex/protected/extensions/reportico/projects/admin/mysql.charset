@@ -1,0 +1,58 @@
+None|None|
+utf8|UTF-8 Unicode
+latin1|ISO 8859-1 West European
+latin2|ISO 8859-2 Central European
+
+
+latin5|ISO 8859-9 Turkish
+
+latin7|ISO 8859-13 Baltic
+
+
+
+
+ujis|EUC-JP Japanese
+euckr|EUC-KR Korean
+
+
+gbk|GBK Simplified Chinese
+
+
+greek|ISO 8859-7 Greek
+hebrew|ISO 8859-8 Hebrew
+
+koi8r|KOI8-R Relcom Russian
+
+sjis|Shift-JIS Japanese|cp932|
+SJIS for Windows Japanese
+
+
+
+cp1250|Windows Central European
+cp1251|Windows Cyrillic
+
+
+
+
+cp1256|Windows Arabic
+cp1257|Windows Baltic
+
+big5|Big5 Traditional Chinese
+eucjpms|UJIS for Windows Japanese
+binary|Binary pseudo charset
+cp850|DOS West European
+armscii8|ARMSCII-8 Armenian
+ascii|US ASCII
+cp852|DOS Central European
+cp866|DOS Russian
+dec8|DEC West European
+gb2312|GB2312 Simplified Chinese
+geostd8|GEOSTD8 Georgian
+hp8|HP West European
+keybcs2|DOS Kamenicky Czech-Slovak
+koi8u|KOI8-U Ukrainian
+macce|Mac Central European
+macroman|Mac West European
+swe7|7bit Swedish
+tis620|TIS620 Thai
+ucs2|UCS-2 Unicode

@@ -1,0 +1,269 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>Patronage Variation Report</ReportTitle><ReportDescription>The &lt;b&gt;Patronage Variation Report&lt;/b&gt; shows the variation in patronage over a period of time for a location.
+&lt;p&gt;&lt;a href=projects/icount/images/occupancy_variation.png target=&quot;_blank&quot;&gt;&lt;img src=projects/icount/images/occupancy_variation_s.png&gt;&lt;/img&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;P&gt;
+Enter some parameters, select the type of Output and Level of Detail required and click the Execute button below.</ReportDescription><PageSize>A4</PageSize><PageOrientation>Landscape</PageOrientation><TopMargin></TopMargin><BottomMargin></BottomMargin><RightMargin></RightMargin><LeftMargin></LeftMargin><pdfFont>Helvetica</pdfFont><pdfFontSize>10.0</pdfFontSize><PreExecuteCode>$sql = &quot;SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED &quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+/* ---------------------------------------------------------------- */
+/* Get Criteria */
+/* ---------------------------------------------------------------- */
+$dfrom = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE1&quot;);
+$dto = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE2&quot;);
+$rt = $_criteria[&quot;route&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$op = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$loc = $_criteria[&quot;location&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$grp = $_criteria[&quot;grouping&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+$groupbymonth = false;
+$groupbyweek = false;
+$groupbydate = false;
+$groupbyhour = false;
+if (preg_match(&quot;/M/&quot;, $grp)) $groupbymonth = true;
+if (preg_match(&quot;/W/&quot;, $grp)) $groupbyweek = true;
+if (preg_match(&quot;/D/&quot;, $grp)) $groupbydate = true;
+if (preg_match(&quot;/H/&quot;, $grp)) $groupbyhour = true;
+
+/* ---------------------------------------------------------------- */
+/* Create a temp table containing all the relevant dates */
+/* ---------------------------------------------------------------- */
+$dfdy = substr($dfrom, 1,2);
+$dfmn = substr($dfrom, 4,2);
+$dfyr = substr($dfrom, 7,4);
+$dtdy = substr($dto, 1,2);
+$dtmn = substr($dto, 4,2);
+$dtyr = substr($dto, 7,4);
+$ifrom = mktime(0, 0, 0, $dfmn, $dfdy, $dfyr);
+$ito = mktime(0, 0, 0, $dtmn, $dtdy, $dtyr);
+
+$sql = &quot;CREATE TEMP TABLE t_days (day date, dtime datetime year to day) with no log;&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+
+$ptr = $ifrom;
+while ($ptr &lt;= $ito)
+{
+    $dt = strftime(&quot;%d/%m/%Y&quot;, $ptr);
+    $dtm = strftime(&quot;%Y-%m-%d&quot;, $ptr);
+
+    $sql = &quot;INSERT INTO t_days VALUES ('&quot;.$dt.&quot;', '&quot;.$dtm.&quot;');&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+    $ptr = $ptr + (24 * 60 * 60);
+};
+
+/* ---------------------------------------------------------------- */
+/* Create a temp table containing all the relevant timetable trips */
+/* ---------------------------------------------------------------- */
+$sql = &quot;SELECT t_days.day, t_days.dtime, route_code, service_code,
+route.route_id, operator.operator_code operator_code,
+service.service_id, publish_tt.fact_id fact_id,
+publish_tt.runningno runningno,
+event.event_code event_code, event.event_id, notes[1,1] over_midnight
+FROM operator,route_for_user route_dimension route,service, t_days, publish_tt,event_pattern,event
+WHERE 1 = 1
+AND operator.operator_id = route.operator_id
+AND route.route_id = service.route_id
+AND publish_tt.service_id = service.service_id
+AND publish_tt.evprf_id = event_pattern.evprf_id
+AND event_pattern.event_id = event.event_id
+AND t_days.day BETWEEN service.wef_date AND service.wet_date
+AND WEEKDAY(t_days.day) BETWEEN rpdy_start AND rpdy_end
+AND event_tp = 3
+AND (CURRENT &gt; EXTEND(start_time, year to second) OR
+DATE(CURRENT) &gt; t_days.day)&quot;;
+
+if ($rt)
+    $sql .= &quot; AND route.route_id in ( $rt )&quot;;
+if ($op)
+    $sql .= &quot; AND operator.operator_id in ( $op )&quot;;
+
+$sql .=&quot; INTO TEMP t_timetable WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg(); 
+
+$sql=&quot;CREATE INDEX ix_tttb ON t_timetable ( day, fact_id );&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg(); 
+
+/* ---------------------------------------------------------------- */
+/* Create a temp table containing all the relevant data */
+/* ---------------------------------------------------------------- */
+$sql = &quot;SELECT t_timetable.day, timetable_journey_fact.route_id, timetable_journey_fact.fact_id, timetable_journey_fact.employee_id, timetable_journey_fact.vehicle_id, timetable_visit_fact.*
+FROM timetable_journey_fact, timetable_visit_fact, t_timetable
+WHERE 1 = 1
+AND t_timetable.day = date(timetable_journey_fact.actual_start)
+AND timetable_journey_fact.fact_id = t_timetable.fact_id
+AND timetable_journey_fact.fact_id = timetable_visit_fact.fact_id
+AND actual_est != 'C'
+AND arrival_status != 'C'
+AND departure_status != 'C'&quot;;
+
+if ($loc)
+    $sql .= &quot; AND timetable_visit_fact.location_id IN ( $loc )&quot;;
+
+$sql .= &quot; INTO TEMP t_acttime WITH NO LOG;&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg(); 
+
+$sql=&quot;CREATE INDEX ix_tatb ON t_acttime ( day, fact_id );&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg(); 
+
+/* ---------------------------------------------------------------- */
+/* Create a temp table containing the data aggregated per criteria */
+/* ---------------------------------------------------------------- */
+if ($groupbymonth)
+    $monthcol = &quot;MONTH(people_count_fact.count_date)||'     '&quot;;
+else
+    $monthcol = &quot;'ANY'&quot;;
+
+if ($groupbyweek)
+    $weekcol = &quot;round(1 + (people_count_fact.count_date - mdy(1, 1, year(people_count_fact.count_date)) - weekday(mdy(1, 1, year(people_count_fact.count_date))))/7 + 0.5)||'     '&quot;;
+else
+    $weekcol = &quot;'ANY'&quot;;
+
+if ($groupbydate)
+    $datecol = &quot;people_count_fact.count_date||'     '&quot;;
+else
+    $datecol = &quot;'ANY'&quot;;
+
+if ($groupbyhour)
+    $hourcol = &quot;people_count_fact.count_hour||'     '&quot;;
+else
+    $hourcol = &quot;'ANY'&quot;;
+
+$sql = &quot;SELECT t_acttime.location_id location_id, $datecol count_date, $hourcol count_hour, ROUND(AVG(people_count_fact.in), 1) avg_in, ROUND(AVG(people_count_fact.out), 1) avg_out, ROUND(AVG(people_count_fact.occupancy), 1) avg_occupancy, $monthcol count_month, $weekcol count_week
+FROM people_count_fact, t_acttime
+WHERE 1 = 1
+AND people_count_fact.vehicle_id = t_acttime.vehicle_id
+AND people_count_fact.fact_id = t_acttime.fact_id
+AND people_count_fact.sequence = t_acttime.sequence
+GROUP BY 1, 7, 8, 2, 3
+INTO TEMP t_avg_data WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+
+/* ---------------------------------------------------------------- */
+/* Create a table containing all the relevant locations */
+/* ---------------------------------------------------------------- */
+$sql = &quot;SELECT UNIQUE t_acttime.location_id, location.location_code, location.description FROM t_acttime, location WHERE location.location_id = t_acttime.location_id INTO TEMP t_locations WITH NO LOG;&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+/* ---------------------------------------------------------------- */
+/* Table containing relevant months, weeks and days. */
+/* ---------------------------------------------------------------- */
+$sql = &quot;SELECT
+t_locations.location_id location_id,
+t_locations.location_code location_code,
+t_locations.description description,
+MONTH(t_days.day)||'     ' month_val,
+round(1 + (t_days.day - mdy(1, 1, year(t_days.day)) - weekday(mdy(1, 1, year(t_days.day))))/7 + 0.5)||'     ' week_val,
+t_days.day||'          ' date_val
+FROM t_locations, t_days
+ORDER BY 1, 3, 4, 5
+INTO TEMP t_locdates WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+
+if (!$groupbymonth)
+{
+    $sql = &quot;UPDATE t_locdates SET month_val = 'ANY'&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+}
+if (!$groupbyweek)
+{
+    $sql = &quot;UPDATE t_locdates SET week_val = 'ANY'&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+}
+if (!$groupbydate)
+{
+    $sql = &quot;UPDATE t_locdates SET date_val = 'ANY'&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+}
+
+/* ---------------------------------------------------------------- */
+/* Create a table containing all hours 0-23. */
+/* ---------------------------------------------------------------- */
+$sql = &quot;CREATE TEMP TABLE t_hours (hour_val char(10)) WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+
+for ($i_hour = 0; $i_hour &lt; 24; $i_hour++)
+{
+    $sql = &quot;INSERT INTO t_hours VALUES ( '$i_hour' );&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+};
+
+if (!$groupbyhour)
+{
+    $sql = &quot;UPDATE t_hours SET hour_val = 'ANY'&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+}
+
+/* ---------------------------------------------------------------- */
+/* Bring in all the missing months/weeks/dates/hours */
+/* ---------------------------------------------------------------- */
+$sql = &quot;SELECT t_locdates.location_id location_id, t_locdates.location_code location_code, t_locdates.description description,&quot;;
+
+if ($groupbymonth)
+    $sql .= &quot; t_locdates.month_val::int count_month,&quot;;
+else
+    $sql .= &quot; t_locdates.month_val count_month,&quot;;
+
+if ($groupbyweek)
+    $sql .= &quot; t_locdates.week_val::int count_week,&quot;;
+else
+    $sql .= &quot; t_locdates.week_val count_week,&quot;;
+
+if ($groupbydate)
+    $sql .= &quot; t_locdates.date_val::date count_date,&quot;;
+else
+    $sql .= &quot; t_locdates.date_val count_date,&quot;;
+
+if ($groupbyhour)
+    $sql .= &quot; t_hours.hour_val::int count_hour,&quot;;
+else 
+    $sql .= &quot; t_hours.hour_val count_hour,&quot;;
+
+$sql .= &quot; avg_in avg_in,
+avg_out avg_out,
+avg_occupancy avg_occupancy,&quot;;
+
+$x_label = &quot;&quot;;
+if ($groupbydate)
+    $x_label = &quot;trim(t_locdates.date_val)&quot;;
+elseif ($groupbymonth)
+    $x_label = &quot;'Month ' || trim(t_locdates.month_val)&quot;;
+
+if ($groupbyweek)
+{
+    if ($groupbydate || $groupbymonth)
+        $x_label = &quot;'Wk' || trim(t_locdates.week_val) || ' ' || &quot; . $x_label;
+    else
+        $x_label = &quot;'Wk' || trim(t_locdates.week_val)&quot;;
+}
+
+if ($groupbyhour)
+{
+    if ($groupbymonth || $groupbyweek || $groupbydate)
+        $x_label .= &quot; || ' ' || LPAD(trim(t_hours.hour_val), 2, ' ') || 'h'&quot;;
+    else
+        $x_label = &quot;LPAD(trim(t_hours.hour_val), 2, ' ') || 'h'&quot;;
+}
+
+if (!($groupbymonth || $groupbyweek || $groupbydate || $groupbyhour))
+    $x_label = &quot;'Entire Range'&quot;;
+
+$sql .= &quot; $x_label x_label
+FROM t_locdates, t_hours, outer(t_avg_data)
+WHERE 1 = 1
+AND t_locdates.location_id = t_avg_data.location_id
+AND t_locdates.month_val = t_avg_data.count_month
+AND t_locdates.week_val = t_avg_data.count_week
+AND t_locdates.date_val = t_avg_data.count_date
+AND t_hours.hour_val = t_avg_data.count_hour
+GROUP BY 1, 2, 3, 9, 10, 4, 5, 6, 7, 8, 11
+INTO TEMP t_query_data WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg(); 
+</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName>centurion</DatabaseName><HostName>centlive_tcp</HostName><ServiceName>?Unknown?</ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>t_query_data</TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>location_id</Name><TableName></TableName><ColumnName>location_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>location_code</Name><TableName></TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>description</Name><TableName></TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>count_month</Name><TableName></TableName><ColumnName>count_month</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>count_week</Name><TableName></TableName><ColumnName>count_week</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>count_date</Name><TableName></TableName><ColumnName>count_date</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>count_hour</Name><TableName></TableName><ColumnName>count_hour</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>avg_in</Name><TableName></TableName><ColumnName>avg_in</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>avg_out</Name><TableName></TableName><ColumnName>avg_out</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>avg_occupancy</Name><TableName></TableName><ColumnName>avg_occupancy</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>x_label</Name><TableName></TableName><ColumnName>x_label</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>location_id</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>count_month</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>count_week</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>count_date</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>count_hour</Name><OrderType>ASC</OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments></Assignments><Criteria><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>legal_name</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator</TableSql><WhereSql> 
+AND
+operator.operator_id IN
+( SELECT route_for_user.operator_id FROM route_for_user )</WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>operator_code</Name><OrderType></OrderType></OrderColumn></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>route</Name><Title>Route</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>route_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>route_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route_for_user</TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_id</Name><TableName>route_for_user</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route_for_user</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route_for_user</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>route_code</Name><OrderType></OrderType></OrderColumn></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{route_code}.'/'.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks><CriteriaLink><LinkFrom>route</LinkFrom><LinkTo>operator</LinkTo><LinkClause>route_for_user.operator_id</LinkClause></CriteriaLink></CriteriaLinks></CriteriaItem><CriteriaItem><Name>date</Name><Title>Date</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>DATERANGE</CriteriaType><CriteriaDisplay>DMYFIELD</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>FIRSTOFLASTMONTH-TODAY</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>location</Name><Title>Location</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>location_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>location_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>location</TableSql><WhereSql> AND location_id IN
+(
+SELECT location_id 
+FROM route_dimension route, route_pattern 
+WHERE 1 = 1       AND route.route_id = route_pattern.route_id
+AND node_type = &quot;TP&quot;
+[ AND route.route_id IN ( {route_dimension route,VALUE} ) ]
+)           </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>location_code</Name><TableName>location</TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>location</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>location_id</Name><TableName>location</TableName><ColumnName>location_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{location_code}.&quot; &quot;.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>grouping</Name><Title>Summarise by: </Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList>Month=M,Week=W,Date=D,Hour=H</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders><PageHeader><LineNumber>1</LineNumber><HeaderText>{title}</HeaderText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>center</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageHeader></PageHeaders><PageFooters><PageFooter><LineNumber>1</LineNumber><FooterText>Page: {#page}</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>right</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter><PageFooter><LineNumber>1</LineNumber><FooterText>Centurion RTPI</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>left</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter></PageFooters><DisplayOrders><DisplayOrder><ColumnName>count_date</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>count_month</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>count_week</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>count_hour</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>avg_in</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>avg_out</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>avg_occupancy</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>location_id</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>description</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>x_label</ColumnName><OrderNumber>10</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>location_code</ColumnName><OrderNumber>11</OrderNumber></DisplayOrder></DisplayOrders><Groups><Group><GroupName>location_id</GroupName><BeforeGroupHeader>blankline</BeforeGroupHeader><AfterGroupHeader>blankline</AfterGroupHeader><BeforeGroupTrailer>blankline</BeforeGroupTrailer><AfterGroupTrailer>blankline</AfterGroupTrailer><GroupHeaders><GroupHeader><GroupHeaderColumn>location_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>description</GroupHeaderColumn></GroupHeader></GroupHeaders><GroupTrailers></GroupTrailers></Group></Groups><Graphs><Graph><GraphColumn>location_id</GraphColumn><GraphColor>white</GraphColor><Title>Occupancy Variation</Title><GraphWidth>800</GraphWidth><GraphHeight>400</GraphHeight><GraphWidthPDF></GraphWidthPDF><GraphHeightPDF></GraphHeightPDF><XTitle>Time</XTitle><YTitle>Count</YTitle><GridPosition>back</GridPosition><XGridDisplay>major</XGridDisplay><XGridColor>gray</XGridColor><YGridDisplay>none</YGridDisplay><YGridColor>gray</YGridColor><XLabelColumn>x_label</XLabelColumn><TitleFont>Font 1</TitleFont><TitleFontStyle>Normal</TitleFontStyle><TitleFontSize>12</TitleFontSize><TitleColor>black</TitleColor><XTitleFont>Font 1</XTitleFont><XTitleFontStyle>Normal</XTitleFontStyle><XTitleFontSize>12</XTitleFontSize><XTitleColor>black</XTitleColor><YTitleFont>Font 1</YTitleFont><YTitleFontStyle>Normal</YTitleFontStyle><YTitleFontSize>12</YTitleFontSize><YTitleColor>black</YTitleColor><XAxisColor>black</XAxisColor><XAxisFont>Font 1</XAxisFont><XAxisFontStyle>Normal</XAxisFontStyle><XAxisFontSize>8</XAxisFontSize><XAxisFontColor>black</XAxisFontColor><YAxisColor>black</YAxisColor><YAxisFont>Font 1</YAxisFont><YAxisFontStyle>Normal</YAxisFontStyle><YAxisFontSize>8</YAxisFontSize><YAxisFontColor>black</YAxisFontColor><XTickInterval>1</XTickInterval><YTickInterval>4</YTickInterval><XTickLabelInterval>2</XTickLabelInterval><YTickLabelInterval>2</YTickLabelInterval><MarginColor>white</MarginColor><MarginLeft>50</MarginLeft><MarginRight>50</MarginRight><MarginTop>20</MarginTop><MarginBottom>150</MarginBottom><Plots><Plot><PlotColumn>avg_in</PlotColumn><PlotType>LINE</PlotType><LineColor>green</LineColor><DataType>number</DataType><Legend>Average Passengers Boarding</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>avg_out</PlotColumn><PlotType>LINE</PlotType><LineColor>red</LineColor><DataType>number</DataType><Legend>Average Passengers Alighting</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>avg_occupancy</PlotColumn><PlotType>LINE</PlotType><LineColor>blue</LineColor><DataType>number</DataType><Legend>Average Occupancy</Legend><FillColor></FillColor></Plot></Plots></Graph></Graphs></Output></EntryForm></ReportQuery></Report>

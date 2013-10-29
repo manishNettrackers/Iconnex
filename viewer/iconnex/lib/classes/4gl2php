@@ -1,0 +1,41 @@
+f1=$1
+
+cat $f1 | \
+    sed -e "s/leT /\$/I" \
+    -e "s/display /echo /I" \
+    -e "s/TRUE/true/" \
+    -e "s/CALL //" \
+    -e "s/then/) {/I" \
+    -e "s/else/} else {/I" \
+    -e "s/end if/}/I" \
+    -e "s/ = \([a-zA-z]\)/ = \$\1/I" \
+    -e "s/\\$\\$/\\$/I" \
+    -e "s/\(\$[a-zA-Z_0-9]*\\)\./\1[\"/gI" \
+    -e "s/\(\[\"[a-zA-Z_0-9]*\)/\1\"]/gI" \
+    -e "s/IF /if /gI" \
+    -e "s/ELSE /else /gI" \
+    -e "s/^\([         ]*\)\([a-zA-Z0-9_]*\)[  ]*INTEGER,*/\1\$\2 = 0;/gI" \
+    -e "s/^\([         ]*\)\([a-zA-Z0-9_]*\)[  ]*SMALLINT,*/\1\$\2 = 0;/gI" \
+    -e "s/^\([         ]*\)\([a-zA-Z0-9_]*\)[  ]*DATETIME YEAR TO SECOND,*/\1\$\2 = "";/gI" \
+    -e "s/^\([         ]*\)\([a-zA-Z0-9_]*\)[  ]*DATE,*/\1\$\2 = false;/gI" \
+    -e "s/^\([         ]*\)\([a-zA-Z0-9_]*\)[  ]*INTERVAL.*/\1\$\2 = \"\";/gI" \
+    -e "s/^\([         ]*\)\([a-zA-Z0-9_]*\)[  ]*LIKE.*/\1\$\2 = false;/gI" \
+    -e "s/^\([         ]*\)\([a-zA-Z0-9_]*\)[  ]*RECORD.*/\1\$\2 = array();/gI" \
+    -e "s/ CLIPPED//gI" \
+    -e "s/COMMIT WORK/\$sql = \"commit work\"/gI" \
+    -e "s/BEGIN WORK/\$sql = \"commit work\"/gI" \
+    -e "s/\([a-zA-Z][a-zA-Z_0-9]*\)\.\([a-zA-Z][a-zA-Z_0-9]*\)/\$\1[\"\2\"]/g" \
+    -e "s/if \([a-zA-Z]\)/if ( \$\1/" \
+    -e "s/is not null//I" \
+    -e "s/is not null//I" \
+    -e "s/\([   ]\)OR/\1||/I" \
+    -e "s/\([   ]\)AND/\1\&\&/I" \
+    -e "s/\$true/true/" \
+    -e "s/ \([a-zA-Z\.\$_]*\) is null/ !\$\1/I" \
+    -e "s/end foreach/}/I" \
+    -e "s/\$\$/\$/I" \
+    -e "s/\-\-/\/\//I" \
+    -e "s/\&\& \([a-z]\)/\&\& \$\1/I" \
+    -e "s/|| \([a-z]\)/|| \$\1/I" \
+    > $f1.out
+

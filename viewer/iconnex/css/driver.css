@@ -1,0 +1,61 @@
+#rgblogoright
+{
+	font-size: 200%;
+    height: 100%;
+	color:#ffffbb;
+    background: transparent url(../images/reading-buses-logo.gif) no-repeat right top;
+}
+
+#rgbmainmenu
+{
+    float: left;
+	padding-top: 20px;
+    margin-bottom: 8px;
+	color:#ffffbb;
+    height: 80px;
+    font-family: Trebuchet MS;
+    background: transparent url(../images/rgbback.gif) repeat-x;
+}
+
+#rgbdriver
+{
+	font-size: 200%;
+	padding: 10px 20px;
+    float: left;
+    width: 20%;
+	color:#ffffff;
+}
+
+#rgbnavmenu
+{
+    background: transparent url(../images/rgbback.gif) repeat-x;
+    float: left;
+	font-size: 200%;
+    width: 20%;
+	color:#ffffff;
+}
+
+#rgblogo
+{
+    float: left;
+	padding: 10px 20px;
+	font-size: 200%;
+	color:#ffffbb;
+}
+
+.menubutton
+{
+    height: 80px;
+    text-align: center;
+    vertical-align: center;
+    background-color: #f0fd9f;
+    width: 100%;
+    margin-bottom: 4px;
+    background: transparent url(../images/rgbbgbutton.png) no-repeat;
+}
+
+
+#tm-nav-bar
+{
+    background: none;
+}
