@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+targetNamespace="http://ods.reading-travelinfo.co.uk"
+xmlns="http://ods.reading-travelinfo.co.uk"
+xmlns:hns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+elementFormDefault="qualified"
+attributeFormDefault="unqualified">
+<xs:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd" schemaLocation="header.xsd"/>
+    <xs:element name="Root">
+        <xs:complexType>
+            <xs:sequence> 
+                <xs:element ref="hns:Header"/>
+                <xs:element name="Status">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Service" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Id" type="xs:string"/>
+                                        <xs:element name="Operator" type="xs:string"/>
+                                        <xs:element name="Timestamp" type="xs:dateTime"/>
+                                        <xs:element name="StatusText" type="xs:string"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element> 
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element> 
+</xs:schema>

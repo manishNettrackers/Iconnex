@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+    targetNamespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+    xmlns:tns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+    xmlns:xsi="http://www.w3c.org/2001/XMLSchema-instance" attributeFormDefault="unqualified">
+    <xs:annotation>
+        <xs:appinfo>
+            <Metadata xmlns="http://www.govtalk.gov.uk/CM/gms-xs">
+                <Aggregation>header schema</Aggregation>
+                <Audience>Syndicators of Reading Borough Council Transport Data Feeds</Audience>
+                <Creator>Eur-Ing. Dr. Thomas W. Lake, Interglossa Ltd.</Creator>
+                <Coverage>Reading Area</Coverage>
+                <Date><Created>2012-05-23</Created></Date>
+                <Description>
+                    <p>Format of header for any transport data feed conforming to RBC standards.</p>
+                    <p>Corresponds closely to the Transport for London header format but differs in
+                       allowing for multiple logos e.g. Reading Borough Council and National Rail Enquiries
+                    </p>
+                </Description>
+                <Format>
+                    <MediaType>text/xml</MediaType>
+                    <Syntax>http://www.w3.org/2001/XMLSchema</Syntax>
+                </Format>
+                <Identifier>{http://www.reading-travelinfo.co.uk/syndication/1.0}header.xsd</Identifier>
+                <Language>[ISO 639-2/B] ENG</Language>
+                <Publisher>Interglossa Ltd, 31A Chain Street, Reading RG1 5PG</Publisher>
+                <Rights>Unclassified
+                    <Copyright> Reading Borough Council </Copyright>
+                </Rights>
+                <Source>
+                    <ul>
+                        <li>Derived from the Transport for London syndication standard header documentation.</li>
+                    </ul>
+                </Source>
+                <Status>Version 1.1 Draft for approval</Status>
+                <Subject>
+                    <Category>Arts, recreation and travel, Tourism, Travel (tourism), Transport,
+                        Air transport, Airports, 
+                        Ports and maritime transport, Ferries (marine),
+                        Public transport, Bus services, Coach services, Bus stops and stations,
+                        Rail transport, Railway stations and track, Train services, 
+                        Business and industry, Transport, Air transport , Public transport,
+                        Rail transport, Roads and road transport.
+                    </Category>
+                    <Project>Reading Borough Council Transport Data Feeds Syndication</Project>
+                </Subject>
+                <Title>Reading Borough Council Transport Data Feeds Syndication - Header </Title>
+                <Type>Standard</Type>
+            </Metadata>
+        </xs:appinfo>
+    </xs:annotation>
+
+    <xs:element name="Header">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Identifier" type="xs:string"/>
+                <xs:element name="DisplayTitle" type="xs:string"/>
+                <xs:element name="PublishDateTime">
+                    <xs:annotation>
+                        <xs:documentation>String representing UTC in the format DDD DD MMM YYYY
+                            HH:MM:SS.sss. Timestamp of the feed publication. Used to calculate
+                            refresh rates and error conditions.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:simpleContent>
+                            <xs:extension base="xs:string">
+                                <xs:attribute name="Canonical" type="xs:string">
+                                    <xs:annotation>
+                                        <xs:documentation>String representing UTC in the format
+                                            YYYY-MM-DD HH:MM:SS.sss. Display this with the feed
+                                            content.</xs:documentation>
+                                    </xs:annotation>
+                                </xs:attribute>
+                            </xs:extension>
+                        </xs:simpleContent>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Author" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>String representing email address of author - to be used
+                            for support queries.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Owner" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>Denotes Reading Borough Council as the information
+                            owner.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="RefreshRate" type="xs:int">
+                    <xs:annotation>
+                        <xs:documentation>Period between updates of the available published data in
+                            minutes.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Max_Latency" type="xs:int">
+                    <xs:annotation>
+                        <xs:documentation>Maximum time permitted between capturing the feed and
+                            displaying the feed in minutes.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="TimeToError" type="xs:int">
+                    <xs:annotation>
+                        <xs:documentation>If the latest PublishDateTime is more than this number of
+                            minutes ago then the feed is invalid and ErrorMessage(see below) should
+                            be displayed.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Schedule" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>Publishing schedule of the feed - indicates when it should
+                            be polled. For example, "on the hour" for a RefreshRate of 60 or "3:00am
+                            daily" for a RefreshRate of 1440.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="OverrideMessage" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>Emergency message to be displayed instead of the feed
+                            content if access to the feed is unavailable.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="ErrorMessage" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>To be displayed in case of an error condition in the
+                            feed.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="FeedInfo" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>Production and developer information about the current
+                            state of the feed - not for display.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Attribution">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Url" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>RBC attribution link back to TravelReading web
+                                        site.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="Text" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>Attribution text for the data in respect of
+                                        RBC and National Rail Enquiries.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="RBCLogo" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>URL of the RBC logo that should be displayed
+                                        with the feed data.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="NRELogo" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>URL of the "powered by National Rail
+                                        Enquiries" logo.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                            <xs:element name="Logo" type="xs:string">
+                                <xs:annotation>
+                                    <xs:documentation>URL of a logo combining RBC, National Rail
+                                        Enquiries and any other required logos, sufficient to be
+                                        displayed with the data feed.</xs:documentation>
+                                </xs:annotation>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="Language" type="xs:string">
+                    <xs:annotation>
+                        <xs:documentation>Two character language code - GB or EN for
+                            English.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+
+    <xs:simpleType name="LongitudeType">
+        <xs:annotation>
+            <xs:documentation>Longitude from Greenwich.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="-180"/>
+            <xs:maxInclusive value="180"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="LatitudeType">
+        <xs:annotation>
+            <xs:documentation>Latitude from equator.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="-90"/>
+            <xs:maxInclusive value="90"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="WGS84Point">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Longitude" type="tns:LongitudeType"/>
+                <xs:element name="Latitude" type="tns:LatitudeType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="UKOSPoint">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Easting" type="xs:decimal"/>
+                <xs:element name="Northing" type="xs:decimal"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="WGS84Boundary">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" ref="tns:WGS84Point"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="UKOSBoundary">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element maxOccurs="unbounded" ref="tns:UKOSPoint"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="PointType">
+            <xs:sequence>
+                <xs:element minOccurs="0" ref="tns:UKOSPoint"/>
+                <xs:element minOccurs="0" ref="tns:WGS84Point"/>
+            </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="BoundaryType">
+            <xs:sequence>
+                <xs:element minOccurs="0" ref="tns:UKOSBoundary"/>
+                <xs:element minOccurs="0" ref="tns:WGS84Boundary"/>
+            </xs:sequence>
+    </xs:complexType>
+</xs:schema>

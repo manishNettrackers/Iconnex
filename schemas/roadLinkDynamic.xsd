@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    targetNamespace="http://www.reading-travelinfo.co.uk/syndication/1.0/roadLinkDynamic.xsd"
+    xmlns:tns="http://www.reading-travelinfo.co.uk/syndication/1.0/roadLinkDynamic.xsd"
+    xmlns:hns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+    xmlns:xsi="http://www.w3c.org/2001/XMLSchema-instance" id="roadLinkDynamic">
+
+    <xs:annotation>
+        <xs:appinfo>
+            <Metadata xmlns="http://www.govtalk.gov.uk/CM/gms-xs">
+                <Aggregation> road link dynamic datafeed schema</Aggregation>
+                <Audience>Syndicators of Reading Borough Council Transport Data Feeds</Audience>
+                <Creator>Eur-Ing. Dr. Thomas W. Lake, Interglossa Ltd.</Creator>
+                <Coverage>Reading Area</Coverage>
+                <Date><Created>2012-07-31</Created></Date>
+                <Description>
+                    <p>road link dynamic data feed after UTMC</p>
+                </Description>
+                <Format>
+                    <MediaType>text/xml</MediaType>
+                    <Syntax>http://www.w3.org/2001/XMLSchema</Syntax>
+                </Format>
+                <Identifier>{http://www.reading-travelinfo.co.uk/syndication/1.0}roadLinkDynamic.xsd</Identifier>
+                <Language>[ISO 639-2/B] ENG</Language>
+                <Publisher>Interglossa Ltd, 31A Chain Street, Reading RG1 5PG</Publisher>
+                <Relation>
+                    <Requires>http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd</Requires>
+                </Relation>    
+                <Rights>Unclassified
+                    <Copyright> Reading Borough Council </Copyright>
+                </Rights>
+                <Source>
+                    <ul>
+                        <li>Derived from UTMC documentation for TL, TL_SCOOT and TL_ANPR object;  definition. dynamic and auxiliary tables.</li>
+                    </ul>
+                </Source>
+                <Status>Version 1.0 Draft for approval</Status>
+                <Subject>
+                    <Category>Arts, recreation and travel, Tourism, Travel (tourism), Transport,
+                        Railway stations and track, Train services, 
+                        Business and industry, Transport, Public transport,
+                        Roads and road transport.
+                    </Category>
+                    <Project>Reading Borough Council Transport Data Feeds Syndication</Project>
+                </Subject>
+                <Title>Reading Borough Council Transport Data Feeds Syndication - road link dynamic data feed </Title>
+                <Type>Standard</Type>
+            </Metadata>
+        </xs:appinfo>
+    </xs:annotation>
+
+    <!-- ======================================================================= -->
+    <xs:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+        schemaLocation="header.xsd"/>
+    <!-- ======================================================================= -->
+
+    <xs:element name="Root">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="hns:Header"/>
+                <xs:element name="RoadLinks">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="RoadLink">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="SCN" type="xs:NMTOKEN"/>
+                                        <xs:element name="lastUpdated" type="xs:dateTime"/>
+                                        <xs:element minOccurs="0" name="congestionPerCent"
+                                            type="xs:float"/>
+                                        <xs:element minOccurs="0" name="currentFlow" type="xs:float"/>
+                                        <xs:element minOccurs="0" name="averageSpeed"
+                                            type="xs:float">
+                                            <xs:annotation>
+                                                <xs:documentation>Kilometres per hout</xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+                                        <xs:element minOccurs="0" name="linkTravelTime"
+                                            type="xs:int">
+                                            <xs:annotation>
+                                                <xs:documentation>seconds</xs:documentation>
+                                            </xs:annotation>
+                                        </xs:element>
+                                        <xs:element minOccurs="0" name="linkStatus" type="xs:string"/>
+                                        <xs:element name="fault" minOccurs="0">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                  <xs:element name="faultType" type="xs:int"/>
+                                                  <xs:element name="faultDescription"
+                                                  type="xs:string"/>
+                                                  <xs:element name="creationDate" type="xs:dateTime"
+                                                  />
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+targetNamespace="http://ods.reading-travelinfo.co.uk"
+xmlns="http://ods.reading-travelinfo.co.uk"
+xmlns:hns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+elementFormDefault="qualified"
+attributeFormDefault="unqualified">
+<xs:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd" schemaLocation="header.xsd"/>
+    <xs:element name="Root">
+        <xs:complexType>
+            <xs:sequence> 
+                <xs:element ref="hns:Header"/>
+                <xs:element name="Locations">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Location" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Id" type="xs:string"/>
+                                        <xs:element name="Naptan" type="xs:string"/>
+                                        <xs:element name="Name" type="xs:string"/>
+                                        <xs:element name="Bay" type="xs:string"/>
+                                        <xs:element name="Latitude" type="xs:double"/>
+                                        <xs:element name="Longitude" type="xs:double"/>
+                                        <xs:element name="Services" type="xs:string"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element> 
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element> 
+</xs:schema>

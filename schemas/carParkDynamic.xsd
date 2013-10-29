@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    targetNamespace="http://www.reading-travelinfo.co.uk/syndication/1.0/carParkDynamic.xsd"
+    xmlns:tns="http://www.reading-travelinfo.co.uk/syndication/1.0/carParkDynamic.xsd"
+    xmlns:hns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+    xmlns:xsi="http://www.w3c.org/2001/XMLSchema-instance"
+    id="carParkDynamic"
+>
+    <xs:annotation>
+        <xs:appinfo>
+            <Metadata xmlns="http://www.govtalk.gov.uk/CM/gms-xs">
+                <Aggregation>Car Park Dynamic datafeed schema</Aggregation>
+                <Audience>Syndicators of Reading Borough Council Transport Data Feeds</Audience>
+                <Creator>Eur-Ing. Dr. Thomas W. Lake, Interglossa Ltd.</Creator>
+                <Coverage>Reading Area</Coverage>
+                <Date><Created>2012-04-17</Created></Date>
+                <Description>
+                    <p>Substantive data feed for car park dynamic measures after UTMC</p>
+                </Description>
+                <Format>
+                    <MediaType>text/xml</MediaType>
+                    <Syntax>http://www.w3.org/2001/XMLSchema</Syntax>
+                </Format>
+                <Identifier>{http://www.reading-travelinfo.co.uk/syndication/1.0}carParkDynamic.xsd</Identifier>
+                <Language>[ISO 639-2/B] ENG</Language>
+                <Publisher>Interglossa Ltd, 31A Chain Street, Reading RG1 5PG</Publisher>
+                <Relation>
+                    <Requires>http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd</Requires>
+                </Relation>    
+                <Rights>Unclassified
+                    <Copyright> Reading Borough Council </Copyright>
+                </Rights>
+                <Source>
+                    <ul>
+                        <li>Derived from UTMC documentation for CarParkDynamic table.</li>
+                    </ul>
+                </Source>
+                <Status>Version 1.0 Draft for approval</Status>
+                <Subject>
+                    <Category>Arts, recreation and travel, Tourism, Travel (tourism), Transport,
+                        Railway stations and track, Train services, 
+                        Business and industry, Transport, Public transport,
+                        Roads and road transport.
+                    </Category>
+                    <Project>Reading Borough Council Transport Data Feeds Syndication</Project>
+                </Subject>
+                <Title>Reading Borough Council Transport Data Feeds Syndication - Car Park Dynamic </Title>
+                <Type>Standard</Type>
+            </Metadata>
+        </xs:appinfo>
+    </xs:annotation>
+
+    <!-- ======================================================================= -->
+    <xs:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+        schemaLocation="header.xsd"/>
+    <!-- ======================================================================= -->
+
+
+    <xs:element name="Root">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="hns:Header"/>
+                <xs:element name="carParks">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="carPark">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="equipmentCode" type="xs:string"/>
+                                        <xs:element name="state">
+                                            <xs:simpleType>
+                                                <xs:restriction base="xs:string">
+                                                  <xs:enumeration value="Faulty"/>
+                                                  <xs:enumeration value="Spaces"/>
+                                                  <xs:enumeration value="AlmostFull"/>
+                                                  <xs:enumeration value="Full"/>
+                                                  <xs:enumeration value="Closed"/>
+                                                  <xs:enumeration value="Open"/>
+                                                  <xs:enumeration value="Other"/>
+                                                  <xs:enumeration value="Queuing"/>
+                                                </xs:restriction>
+                                            </xs:simpleType>
+                                        </xs:element>
+                                        <xs:element name="occupancy" type="xs:int"/>
+                                        <xs:element name="fillRate" type="xs:short"/>
+                                        <xs:element name="exitRate" type="xs:short"/>
+                                        <xs:element name="lastUpdated" type="xs:dateTime"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

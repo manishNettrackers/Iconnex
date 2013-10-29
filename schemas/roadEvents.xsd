@@ -1,0 +1,279 @@
+<s:schema xmlns:s="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+  targetNamespace="http://www.reading-travelinfo.co.uk/syndication/1.0/roadevents.xsd"
+  xmlns:hns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+  xmlns:s1="http://www.reading-travelinfo.co.uk/syndication/1.0/roadevents.xsd"
+  xmlns:s4="http://www.govtalk.gov.uk/people/AddressAndPersonalDetails" id="roadevents">
+  <s:annotation>
+    <s:appinfo>
+      <Metadata xmlns="http://www.govtalk.gov.uk/CM/gms-xs">
+        <Aggregation>Roadworks datafeed road events schema</Aggregation>
+        <Audience>Syndicators of Reading Borough Council Transport Data Feeds</Audience>
+        <Creator>Eur-Ing. Dr. Thomas W. Lake, Interglossa Ltd.</Creator>
+        <Coverage>Reading Area</Coverage>
+        <Date><Created>2012-05-28</Created></Date>
+        <Description>
+          <p>Roadworks road events data feed</p>
+        </Description>
+        <Format>
+          <MediaType>text/xml</MediaType>
+          <Syntax>http://www.w3.org/2001/XMLSchema</Syntax>
+        </Format>
+        <Identifier>{http://www.reading-travelinfo.co.uk/syndication/1.0}VMS.xsd</Identifier>
+        <Language>[ISO 639-2/B] ENG</Language>
+        <Publisher>Interglossa Ltd, 31A Chain Street, Reading RG1 5PG</Publisher>
+        <Relation>
+          <Requires>http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd</Requires>
+        </Relation>    
+        <Rights>Unclassified
+          <Copyright> Reading Borough Council </Copyright>
+        </Rights>
+        <Source>
+          <ul>
+            <li>Derived from schemas for the elgin roadworks service and other sources. </li>
+          </ul>
+        </Source>
+        <Status>Version 1.1 Draft for approval</Status>
+        <Subject>
+          <Category>Arts, recreation and travel, Tourism, Travel (tourism), Transport,
+            Railway stations and track, Train services, 
+            Business and industry, Transport, Public transport,
+            Roads and road transport.
+          </Category>
+          <Project>Reading Borough Council Transport Data Feeds Syndication</Project>
+        </Subject>
+        <Title>Reading Borough Council Transport Data Feeds Syndication - Road Events</Title>
+        <Type>Standard</Type>
+      </Metadata>
+    </s:appinfo>
+  </s:annotation>
+  
+
+  <s:import namespace="http://www.govtalk.gov.uk/people/AddressAndPersonalDetails"
+    schemaLocation="govtalkpeople.xsd"/>
+  <s:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+    schemaLocation="header.xsd"/>
+
+  <s:element name="RoadEventList" type="s1:RoadEventList"/>
+  <s:complexType name="RoadEventList">
+    <s:complexContent mixed="false">
+      <s:extension base="s1:RoadEventListType"/>
+    </s:complexContent>
+  </s:complexType>
+
+  <s:complexType name="RoadEventListType">
+    <s:sequence>
+      <s:element minOccurs="0" maxOccurs="unbounded" name="RoadEvent">
+        <s:complexType>
+          <s:complexContent mixed="false">
+            <s:extension base="s1:RoadEventType">
+              <s:attribute name="LastModified" type="s:dateTime" use="required"/>
+            </s:extension>
+          </s:complexContent>
+        </s:complexType>
+      </s:element>
+    </s:sequence>
+  </s:complexType>
+  <s:complexType name="RoadEventType">
+    <s:complexContent mixed="false">
+      <s:extension base="s1:AbstractFeatureType">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="Description" type="s:string"/>
+          <s:element name="Status">
+            <s:simpleType>
+              <s:restriction base="s:string">
+                <s:enumeration value="Planned"/>
+                <s:enumeration value="Active"/>
+                <s:enumeration value="ActiveLongTerm"/>
+                <s:enumeration value="RecentlyCleared"/>
+              </s:restriction>
+            </s:simpleType>
+          </s:element>
+          <s:element name="DataSource">
+            <s:simpleType>
+              <s:restriction base="s:string">
+                <s:enumeration value="NTCC"/>
+                <s:enumeration value="LOCALUTMC"/>
+                <!-- changed -->
+                <s:enumeration value="LOCALUTC"/>
+                <!-- added -->
+                <s:enumeration value="ELGIN"/>
+              </s:restriction>
+            </s:simpleType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="Cause" type="s1:CauseType"/>
+          <s:element name="Severity" minOccurs="0">
+            <!-- made optional -->
+            <s:simpleType>
+              <s:restriction base="s:string">
+                <s:enumeration value="minimal"/>
+                <s:enumeration value="moderate"/>
+                <s:enumeration value="serious"/>
+                <s:enumeration value="severe"/>
+                <s:enumeration value="unknown"/>
+              </s:restriction>
+            </s:simpleType>
+          </s:element>
+          <s:element name="LevelOfInterest" minOccurs="0">
+            <s:simpleType>
+              <s:restriction base="s:string">
+                <s:enumeration value="Low"/>
+                <s:enumeration value="Medium"/>
+                <s:enumeration value="High"/>
+              </s:restriction>
+            </s:simpleType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="ResponsibleAuthority"
+            type="s1:OrganisationType"/>
+          <s:element minOccurs="0" maxOccurs="1" name="Originator" type="s1:OrganisationType"/>
+          <s:element minOccurs="0" maxOccurs="1" name="OriginatorEventReference" type="s:string"/>
+          <s:element minOccurs="0" maxOccurs="1" name="ProjectReference" type="s:string"/>
+          <s:element minOccurs="0" maxOccurs="1" name="ProjectDescription" type="s:string"/>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="Location">
+            <s:complexType>
+              <s:sequence>
+                <s:element minOccurs="0" maxOccurs="1" name="LocationDescription" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="unbounded" name="RoadDescription"
+                  type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="StartDatim" type="s1:EventDatimType"/>
+                <s:element minOccurs="0" maxOccurs="1" name="EndDatim" type="s1:EventDatimType"/>
+                <s:element minOccurs="0" maxOccurs="1" name="Consequence">
+                  <s:complexType>
+                    <s:sequence>
+                      <s:element minOccurs="0" maxOccurs="1" name="RoadClosure" type="s1:emptyType"/>
+                      <s:element minOccurs="0" maxOccurs="1" name="TemporaryTrafficControl"
+                        type="s1:emptyType"/>
+                      <s:element minOccurs="0" maxOccurs="1" name="LaneClosure" type="s:string"/>
+                      <s:element minOccurs="0" maxOccurs="1" name="FootwayClosure"
+                        type="s1:emptyType"/>
+                      <s:element minOccurs="0" maxOccurs="1" name="IncreasedTrafficLoading"
+                        type="s1:emptyType"/>
+                      <s:element minOccurs="0" maxOccurs="1" name="TrafficSignals"
+                        type="s1:emptyType"/>
+                      <s:element minOccurs="0" maxOccurs="1" name="ContraFlow" type="s1:emptyType"/>
+                      <!-- removed inconvenient hypen from name -->
+                    </s:sequence>
+                  </s:complexType>
+                </s:element>
+                <s:element minOccurs="1" maxOccurs="1" name="TrafficSensitive" type="s:boolean"/>
+                <s:element minOccurs="0" maxOccurs="1" name="DisruptionPattern" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="USRN" type="s:integer"/>
+                <s:element minOccurs="0" maxOccurs="unbounded" name="Toid" type="s:integer"/>
+                <s:element minOccurs="0" maxOccurs="1" name="Postcode" type="s:string"/>
+                <s:element minOccurs="1" maxOccurs="1" name="Diversion" type="s:boolean"/>
+                <s:element minOccurs="0" maxOccurs="1" name="NoticeTypeCode" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="WorksTypeCode" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="WorksCategory" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="TrafficManagementCode" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="CarriagewayRestrictionType"
+                  type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="FootwayClosure" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="ParkingSuspensions" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="WorksStatusCode" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="NotificationType" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="VersionNumber" type="s:string"/>
+                <s:element minOccurs="0" maxOccurs="1" name="EtonVersion" type="s:string"/>
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="1" maxOccurs="1" name="Cancelled" type="s:boolean"/>
+          <s:element minOccurs="1" maxOccurs="1" name="Planned" type="s:boolean"/>
+        </s:sequence>
+      </s:extension>
+    </s:complexContent>
+  </s:complexType>
+  <s:simpleType name="CauseType">
+    <s:restriction base="s:string">
+      <s:enumeration value="UnknownCause"/>
+      <s:enumeration value="Roadworks"/>
+      <s:enumeration value="Accident"/>
+      <s:enumeration value="Breakdown"/>
+      <s:enumeration value="EmergencyServiceIncident"/>
+      <s:enumeration value="OtherIncident"/>
+      <s:enumeration value="Security"/>
+      <s:enumeration value="OtherWeather"/>
+      <s:enumeration value="Flooding"/>
+      <s:enumeration value="IceOnRoad"/>
+      <s:enumeration value="BlackIceOnRoad"/>
+      <s:enumeration value="Fog"/>
+      <s:enumeration value="Rain"/>
+      <s:enumeration value="Snow"/>
+      <s:enumeration value="ReducedVisibility"/>
+      <s:enumeration value="HighWinds"/>
+      <s:enumeration value="CraneOperation"/>
+      <s:enumeration value="Obstruction"/>
+      <s:enumeration value="CeremonialEvent"/>
+      <s:enumeration value="SportingEvent"/>
+      <s:enumeration value="EntertainmentEvent"/>
+      <s:enumeration value="OtherPublicEvent"/>
+      <s:enumeration value="AnimalsOnRoad"/>
+      <s:enumeration value="PeopleOnRoad"/>
+      <s:enumeration value="ObstructionOnRoad"/>
+      <s:enumeration value="SpillageOnRoad"/>
+      <s:enumeration value="PublicDemonstration"/>
+      <s:enumeration value="AbnormalLoad"/>
+      <s:enumeration value="Filming"/>
+      <s:enumeration value="BridgeLift"/>
+      <s:enumeration value="TrafficSignalIssue"/>
+      <s:enumeration value="Barriers"/>
+      <s:enumeration value="SignalTimingIssue"/>
+
+      <!--
+        1400|TIH Not Defined|*|
+1401|TIH Road Works|*|
+1402|TIH Sports Event|*|
+1403|TIH Entertainment Event|*|
+1404|TIH Other Planned|*|
+1405|TIH Accident|*|
+1406|TIH Congestion|*|
+1407|TIH Animals on Road|*|
+1408|TIH People on Road|*|
+1409|TIH Obstruction on Road|*|
+1410|TIH Spillage on Road|*|
+1411|TIH Flooding|*|
+1412|TIH Ice|*|
+1413|TIH Security|*|
+1414|TIH Other Unplanned|*|
+1415|TIH Misc Closure|*|
+1416|TIH Fog|*|
+1417|TIH Rain|*|
+1418|TIH Snow|*|
+1419|TIH High Winds|*|
+1420|TIH Abnormal Load|*|
+1421|TIH Visibility Reduced|*|
+1422|TIH Emergency Roadworks|*|
+
+      -->
+
+    </s:restriction>
+  </s:simpleType>
+  <s:complexType name="OrganisationType">
+    <s:sequence>
+      <s:element minOccurs="0" maxOccurs="1" name="OrganisationName" type="s:string"/>
+      <s:element minOccurs="0" maxOccurs="1" name="OrganisationID" type="s:string"/>
+      <s:element minOccurs="0" maxOccurs="1" name="OrganisationSectionName" type="s:string"/>
+      <s:element minOccurs="0" maxOccurs="1" name="OrganisationSectionID" type="s:string"/>
+      <s:element minOccurs="0" maxOccurs="1" name="Contact" type="s1:ContactType"/>
+    </s:sequence>
+  </s:complexType>
+  <s:complexType name="ContactType">
+    <s:sequence>
+      <s:element minOccurs="0" maxOccurs="1" name="Name" type="s4:CitizenNameStructure"/>
+      <s:element minOccurs="0" maxOccurs="1" name="ContactDetails"
+        type="s4:CitizenContactDetailsStructure"/>
+    </s:sequence>
+  </s:complexType>
+  <s:complexType name="EventDatimType">
+    <s:simpleContent>
+      <s:extension base="s:dateTime">
+        <s:attribute name="Estimated" type="s:boolean" use="required"/>
+      </s:extension>
+    </s:simpleContent>
+  </s:complexType>
+  <s:complexType name="AbstractFeatureType">
+    <s:sequence>
+      <s:element name="DisplayLocation" type="hns:PointType"> </s:element>
+      <s:element name="Boundary" type="hns:BoundaryType"/>
+    </s:sequence>
+  </s:complexType>
+  <s:complexType name="emptyType"/>
+</s:schema>

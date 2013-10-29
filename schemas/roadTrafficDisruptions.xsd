@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"
+    attributeFormDefault="unqualified"
+    targetNamespace="http://www.reading-travelinfo.co.uk/syndication/1.0/roadTrafficDisruptions.xsd"
+    xmlns:tns="http://www.reading-travelinfo.co.uk/syndication/1.0/roadTrafficDusruptions.xsd"
+    xmlns:hns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+    xmlns:ens="http://www.reading-travelinfo.co.uk/syndication/1.0/roadevents.xsd"
+    xmlns:xsi="http://www.w3c.org/2001/XMLSchema-instance" id="roadTrafficDisruptions">
+    <xs:annotation>
+        <xs:appinfo>
+            <Metadata xmlns="http://www.govtalk.gov.uk/CM/gms-xs">
+                <Aggregation>Roadworks datafeed schema</Aggregation>
+                <Audience>Syndicators of Reading Borough Council Transport Data Feeds</Audience>
+                <Creator>Eur-Ing. Dr. Thomas W. Lake, Interglossa Ltd.</Creator>
+                <Coverage>Reading Area</Coverage>
+                <Date><Created>2012-05-28</Created></Date>
+                <Description>
+                    <p>Roadworks data feed</p>
+                </Description>
+                <Format>
+                    <MediaType>text/xml</MediaType>
+                    <Syntax>http://www.w3.org/2001/XMLSchema</Syntax>
+                </Format>
+                <Identifier>{http://www.reading-travelinfo.co.uk/syndication/1.0}VMS.xsd</Identifier>
+                <Language>[ISO 639-2/B] ENG</Language>
+                <Publisher>Interglossa Ltd, 31A Chain Street, Reading RG1 5PG</Publisher>
+                <Relation>
+                    <Requires>http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd</Requires>
+                </Relation>    
+                <Rights>Unclassified
+                    <Copyright> Reading Borough Council </Copyright>
+                </Rights>
+                <Source>
+                    <ul>
+                        <li>Derived from schemas for the Elgin roadworks service and other sources. </li>
+                    </ul>
+                </Source>
+                <Status>Version 1.1 Draft for approval</Status>
+                <Subject>
+                    <Category>Arts, recreation and travel, Tourism, Travel (tourism), Transport,
+                        Railway stations and track, Train services, 
+                        Business and industry, Transport, Public transport,
+                        Roads and road transport.
+                    </Category>
+                    <Project>Reading Borough Council Transport Data Feeds Syndication</Project>
+                </Subject>
+                <Title>Reading Borough Council Transport Data Feeds Syndication - Road Traffic Disruptions</Title>
+                <Type>Standard</Type>
+            </Metadata>
+        </xs:appinfo>
+    </xs:annotation>
+
+    <!-- ======================================================================= -->
+    <xs:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+        schemaLocation="header.xsd"/>
+    <xs:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/roadevents.xsd" schemaLocation="roadEvents.xsd"/>
+    <!-- ======================================================================= -->
+    <xs:element name="Root">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="hns:Header"/>
+                <xs:element name="RoadTrafficDisruptions">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element ref="ens:RoadEventList"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+
+</xs:schema>

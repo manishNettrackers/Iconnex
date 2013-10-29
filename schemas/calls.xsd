@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+targetNamespace="http://ods.reading-travelinfo.co.uk"
+xmlns="http://ods.reading-travelinfo.co.uk"
+xmlns:hns="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd"
+elementFormDefault="qualified"
+attributeFormDefault="unqualified">
+<xs:import namespace="http://www.reading-travelinfo.co.uk/syndication/1.0/header.xsd" schemaLocation="header.xsd"/>
+    <xs:element name="MonitoredLocation">
+        <xs:complexType>
+            <xs:sequence> 
+                <xs:element name="Timestamp" type="xs:dateTime"/>
+                <xs:element name="Id" type="xs:string"/>
+                <xs:element name="Naptan" type="xs:string"/>
+                <xs:element name="Name" type="xs:string"/>
+                <xs:element name="Calls">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Call" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Service" type="xs:string"/>
+                                        <xs:element name="PublishedServiceName" type="xs:string"/>
+                                        <xs:element name="Destination" type="xs:string"/>
+                                        <xs:element name="ScheduledArrival" type="xs:dateTime"/>
+                                        <xs:element name="ScheduledDeparture" type="xs:dateTime"/>
+                                        <xs:element name="MonitoredCall" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="WheelchairAccess" type="xs:boolean" minOccurs="0"/>
+                                                    <xs:element name="ExpectedArrival" type="xs:dateTime"/>
+                                                    <xs:element name="ExpectedDeparture" type="xs:dateTime"/>
+                                                    <xs:element name="DisplayTime" type="xs:string"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element> 
+</xs:schema>
