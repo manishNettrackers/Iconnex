@@ -170,7 +170,7 @@ EOD
 </div-->
 
 <?php include ("golapmapview.php"); // Map View ?>
-<?php echo 'abhisek';?>
+
 <?php $this->widget('golapDashboard'); /* Dashboard portlet view*/ ?>
 </div>
 <?php //$this->widget('lowerReportWindow'); /* Small window that appears on user clicking map icon/marker */ ?>
