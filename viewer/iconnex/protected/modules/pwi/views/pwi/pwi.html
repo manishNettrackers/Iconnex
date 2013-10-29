@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>Connexionz UK NetView Demo</title>
+    <script src="c.js" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="c.css" />
+</head>
+<body class="theBody">
+<div id="page" style="margin-top:12px;">
+<div id="header">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+        <td align="center" class="headerTop"><table width="830" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+              <td width="444" align="left" valign="top"><img src="images/header.jpg" alt="connexionz logo" width="444" height="93" /></td>
+              <td align="left" valign="top"><img src="images/header-image-home.jpg" width="310" height="93" alt="" /></td>
+            </tr>
+          </table></td>
+      </tr>
+    </table>
+</div>
+
+    <div class="mapping">
+        <div id="rtpi-title" style="font-size:0.83em"><h1 style="margin-top:0; color:#439DC2;font-size:14.6167px; margin-bottom:10px;">Real Time Bus Information</h1></div>
+        <div id="searchbar">
+            <form id="searchForm" action="" onsubmit="search(this.s.value); return false;" style="width:800px">
+            <label for="s"><!-- route, postcode, name, atco, naptan --></label>
+            <input type="text" value="" size="40" name="s" id="s" />
+            <input type="submit" id="searchSubmit" value="Search" />
+            </form>
+        </div>
+        <div class="leftcol">
+            <div class="menupane curved">
+                <div id="results" class="list">
+                    <div style="font-size:medium">
+                        <br/>Please enter a search term in the box above then press enter or click on the Search button.<br/><br/>You can search for:<ul><li>a bus route code</li><li>a postcode</li><li>part of a stop name</li><li>a bus stop code<br/>(eg. "rdgagat")</li></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rightcol">
+            <div id="mstatus" class="stattxt"></div>
+            <div id="mstatus2" class="stattxt"></div>
+            <div id="overlay" class="curved">
+                <div class="ocontent curved">
+                    <div class="paneheader">
+                        <p style="float:left">Departures</p>
+                        <div id="close" class="button"><a title="Close" href="javascript:hideOverlay()"><img src="images/close.png"></img></a></div>
+                        <div id="popout" class="button"></div>
+                    </div>
+                    <div id="depinfo"></div>
+                    <div id="messages"></div>
+                    <div class="panefooter">
+                        <div id="dstatus" class="stattxt"></div>
+                        <div id="approaching" class="approaching"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="map">Loading map...</div>
+        </div>
+    </div>
+    <noscript><b>JavaScript must be enabled in your browser for this page to function correctly.</b></noscript>
+</div>
+</body>
+</html>

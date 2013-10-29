@@ -1,0 +1,741 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>Interval Calculation</ReportTitle><ReportDescription>The &lt;b&gt;Operational Status Report&lt;/b&gt; presents the scheduled running boards for the day and identifies how well they were tracked.
+&lt;BR&gt;
+Where a running board has been tracked, the report identifies the last operational vehicle on the running board, how long ago an actual arrival was made and the time of that arrival.
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+Select the combination of Route, Service and Date Range required or Accept the default values.  It is recommended that the date range is the current date.
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+Select the type of Output and Level of Detail required and &lt;B&gt;Execute&lt;/B&gt;</ReportDescription><PageSize>A4</PageSize><PageOrientation>Landscape</PageOrientation><TopMargin></TopMargin><BottomMargin></BottomMargin><RightMargin></RightMargin><LeftMargin></LeftMargin><pdfFont>Helvetica</pdfFont><pdfFontSize>10.0</pdfFontSize><PreExecuteCode>function executePDOQuery( $in_sql, &amp;$in_conn )
+{
+        //echo &quot;&lt;br&gt;&lt;br&gt;$in_sql&lt;br&gt;&quot;;
+        $rid =  $in_conn-&gt;Execute($in_sql);
+        if ( !$rid )
+        {
+                print $in_conn-&gt;ErrorMsg();
+                echo &quot;&lt;br&gt;$in_sql&lt;br&gt;&quot;;
+                die;
+        }
+        return $rid;
+}
+
+function fetchPDO( $in_stmt, $in_type = &quot;NEXT&quot; )
+{
+        $result = $in_stmt-&gt;FetchRow();
+        return $result;
+}
+
+function showPDOError( $in_conn )
+{
+        $info = $in_conn-&gt;errorInfo();
+        echo &quot;Error &quot;.$info[1].&quot;&lt;BR&gt;&quot;.
+                $info[2];
+}
+
+$dfrom = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE1&quot;);
+$dto = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE2&quot;);
+$rt = $_criteria[&quot;route&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$op = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$apup = $_criteria[&quot;applyupdates&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+$dfdy = substr($dfrom, 1,2);
+$dfmn = substr($dfrom, 4,2);
+$dfyr = substr($dfrom, 7,4);
+$dtdy = substr($dto, 1,2);
+$dtmn = substr($dto, 4,2);
+$dtyr = substr($dto, 7,4);
+
+$ifrom = mktime ( 0, 0, 0, $dfmn, $dfdy, $dfyr );
+$ito = mktime ( 0, 0, 0, $dtmn, $dtdy, $dtyr );
+
+$sql = &quot;SET ISOLATION TO DIRTY READ&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+$conn_id = $ds;
+
+$sql =&quot;
+create temp table t_band
+(
+       bandid serial,
+       time_start datetime hour to second,
+       time_end datetime hour to second
+) with no log;
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot;
+create temp table t_dayband
+(
+       bandid serial,
+       day_start integer,
+       day_end integer
+) with no log;
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_band values ( 0, '00:00:00', '06:59:59' ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_band values ( 0, '07:00:00', '09:59:59' ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_band values ( 0, '10:00:00', '16:59:59' ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_band values ( 0, '17:00:00', '19:59:59' ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_band values ( 0, '20:00:00', '23:59:59' ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_dayband values ( 0, 0, 0); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_dayband values ( 0, 6, 6); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =&quot; insert into t_dayband values ( 0, 1, 5); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =
+&quot;
+select schedule_id,  c.route_id, d.operator_id, date(a.actual_start) start_date,
+        extend(a.actual_start,hour to second) start_time,
+        b.rtpi_prof_id, b.service_id, b.evprf_id
+from archive_rt a, publish_tt b, route c, operator d
+where a.pub_ttb_id = b.pub_ttb_id
+and date(actual_start) between $dfrom and $dto
+and a.route_id = c.route_id
+and c.operator_id = d.operator_id&quot;;
+
+if ( $op )
+{
+        $sql .= &quot; and d.operator_id in ( $op )&quot;;
+}
+
+if ( $rt )
+{
+        $sql .= &quot; and c.route_id in ( $rt )&quot;;
+}
+
+$sql .=  &quot;
+into temp t_sched with no log;
+&quot;;
+
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; create index t_ix1 on t_sched(schedule_id);&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot;
+select archive_rt_loc.schedule_id,
+       archive_rt_loc.rpat_orderby,
+       archive_rt_loc.location_id,
+       archive_rt_loc.arrival_time,
+       archive_rt_loc.departure_time,
+       archive_rt_loc.departure_time_pub,
+       archive_rt_loc.arrival_status,
+       archive_rt_loc.departure_status,
+       t_sched.rtpi_prof_id,
+       t_sched.evprf_id,
+       t_sched.route_id,
+       t_sched.operator_id
+from archive_rt_loc, t_sched
+where archive_rt_loc.schedule_id = t_sched.schedule_id
+and ( arrival_status = 'A'
+or departure_status = 'A' )
+into temp t_arc with no log;
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; create index t_ix2 on t_arc(schedule_id, rpat_orderby); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =
+&quot;
+create temp table t_arcints
+(
+       schedule_id integer,
+       rtpi_prof_id integer,
+       layover_time interval hour to second,
+       evprf_id integer,
+       route_id integer,
+       operator_id integer,
+       l1_order integer,
+       l1_locid integer,
+       l1_arr datetime year to second,
+       l1_dep datetime year to second,
+       l1_dep_pub datetime year to second,
+       l1_arr_status char(1),
+       l1_dep_status char(1),
+       l2_order integer,
+       l2_locid integer,
+       l2_arr datetime year to second,
+       l2_dep datetime year to second,
+       l2_dep_pub datetime year to second,
+       l2_arr_status char(1),
+       l2_dep_status char(1),
+       wait_time interval  hour to second,
+       travel_time interval  hour to second,
+       use_wait smallint,
+       use_travel smallint
+) with no log; &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =
+&quot;
+insert into t_arcints
+select a.schedule_id,
+       a.rtpi_prof_id,
+       route_location.wait_time layover_time,
+       a.evprf_id,
+       a.route_id,
+       a.operator_id,
+       a.rpat_orderby l1_order,
+       a.location_id l1_locid,
+       a.arrival_time l1_arr,
+       a.departure_time l1_dep,
+       a.departure_time_pub l1_dep_pub,
+       a.arrival_status l1_arr_status,
+       a.departure_status l1_dep_status,
+       b.rpat_orderby l2_order,
+       b.location_id l2_locid,
+       b.arrival_time l2_arr,
+       b.departure_time l2_dep,
+       b.departure_time_pub l2_dep_pub,
+       b.arrival_status l2_arr_status,
+       b.departure_status l2_dep_status,
+       '00:00:00',
+       '00:00:00',
+       0,
+       0
+from t_arc a, t_arc b, route_location
+where a.schedule_id = b.schedule_id
+and a.rpat_orderby + 1 = b.rpat_orderby
+and b.rtpi_prof_id = route_location.profile_id
+and b.rpat_orderby = route_location.rpat_orderby;
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; create index t_idx3 on t_arcints ( schedule_id ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =
+&quot;
+select service_id, max(rpat_orderby) rpat_orderby
+from service_patt
+where service_id in ( select service_id from t_sched )
+group by 1
+into temp t_lastlocs with no log;
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =
+&quot;
+update t_arcints
+set ( wait_time, use_wait ) = ( l2_dep - l2_arr, 1 )
+where l2_arr_status = 'A'
+and l2_dep_status = 'A'
+and l2_dep - l2_arr &lt; '0 00:30:00'
+and (layover_time is null
+or layover_time = '00:00:00' )
+;
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql =
+&quot;
+update t_arcints
+set ( use_wait ) = ( 1 )
+where l2_arr_status = 'A'
+and l2_dep_status = 'A'
+and l2_dep - l2_arr &lt; '0 00:30:00'
+and layover_time is not null
+and layover_time &gt; '00:00:00'
+and l2_dep_pub is not null
+and l2_arr &gt; l2_dep_pub
+;
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+
+$sql = &quot;
+update t_arcints
+set ( travel_time, use_travel ) = ( l2_arr - l1_dep, 1 )
+where l2_arr_status = 'A'
+and l2_arr - l1_dep &lt; '0 00:30:00'
+and l1_dep_status = 'A';&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot;
+create temp table t_ord_arcints
+(
+       ord serial,
+       timeband integer,
+       dayband integer,
+       route_id integer,
+       operator_id integer,
+       schedule_id integer,
+       l1_order integer,
+       l1_locid integer,
+       l1_arr datetime year to second,
+       l1_dep datetime year to second,
+       l1_dep_pub datetime year to second,
+       l1_arr_status char(1),
+       l1_dep_status char(1),
+       l2_order integer,
+       l2_locid integer,
+       l2_arr datetime year to second,
+       l2_dep datetime year to second,
+       l2_dep_pub datetime year to second,
+       l2_arr_status char(1),
+       l2_dep_status char(1),
+       wait_time interval  hour to second,
+       travel_time interval  hour to second,
+       use_wait smallint,
+       use_travel smallint
+) with no log; &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; select  schedule_id, b.bandid timeband, a.evprf_id dayband, a.route_id, a.operator_id,
+l1_order, l1_locid, l1_arr,
+       l1_dep, l1_dep_pub, l1_arr_status, l1_dep_status, l2_order,
+       l2_locid, l2_arr, l2_dep, l2_dep_pub, l2_arr_status,
+       l2_dep_status, wait_time || '' wait_time, travel_time || '' travel_time, use_wait, use_travel
+from t_arcints a, t_band b
+where use_travel = 1
+and extend(a.l2_arr, hour to second) between time_start and time_end
+--and weekday(l2_arr) between day_start and day_end
+order by l1_locid, l2_locid, travel_time;
+&quot;;
+
+$rid = executePDOQuery($sql, $conn_id );
+
+$row = fetchPDO ($rid, &quot;NEXT&quot;);
+$i=0;
+while(is_array($row))
+{
+        $sql =
+                &quot;insert into t_ord_arcints values ( 0, &quot;.
+                $row[&quot;timeband&quot;].&quot;,&quot;.
+                $row[&quot;dayband&quot;].&quot;,&quot;.
+                $row[&quot;route_id&quot;].&quot;,&quot;.
+                $row[&quot;operator_id&quot;].&quot;,&quot;.
+                $row[&quot;schedule_id&quot;].&quot;,&quot;.
+                $row[&quot;l1_order&quot;].&quot;,&quot;.
+                $row[&quot;l1_locid&quot;].&quot;,&quot;.
+                &quot;'&quot;.$row[&quot;l1_arr&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_dep&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_dep_pub&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_arr_status&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_dep_status&quot;].&quot;',&quot;.
+                $row[&quot;l2_order&quot;].&quot;,&quot;.
+                $row[&quot;l2_locid&quot;].&quot;,&quot;.
+                &quot;'&quot;.$row[&quot;l2_arr&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_dep&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_dep_pub&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_arr_status&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_dep_status&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;wait_time&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;travel_time&quot;].&quot;',&quot;.
+                $row[&quot;use_wait&quot;].&quot;,&quot;.
+                $row[&quot;use_travel&quot;].&quot;)&quot;;
+                $rid1 = executePDOQuery($sql, $conn_id );
+                $i++;
+                $row = fetchPDO ($rid, &quot;NEXT&quot;);
+}
+
+$sql = &quot;
+create temp table t_ord_arcwaits
+(
+       ord serial,
+       timeband integer,
+       dayband integer,
+       route_id integer,
+       operator_id integer,
+       schedule_id integer,
+       l1_order integer,
+       l1_locid integer,
+       l1_arr datetime year to second,
+       l1_dep datetime year to second,
+       l1_dep_pub datetime year to second,
+       l1_arr_status char(1),
+       l1_dep_status char(1),
+       l2_order integer,
+       l2_locid integer,
+       l2_arr datetime year to second,
+       l2_dep datetime year to second,
+       l2_dep_pub datetime year to second,
+       l2_arr_status char(1),
+       l2_dep_status char(1),
+       wait_time interval  hour to second,
+       travel_time interval  hour to second,
+       use_wait smallint,
+       use_travel smallint
+) with no log; &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; select  schedule_id, b.bandid timeband, a.evprf_id dayband, a.route_id, a.operator_id,
+       l1_order, l1_locid, l1_arr,
+       l1_dep, l1_dep_pub, l1_arr_status, l1_dep_status, l2_order,
+       l2_locid, l2_arr, l2_dep, l2_dep_pub, l2_arr_status,
+       l2_dep_status, wait_time || '' wait_time, travel_time || '' travel_time, use_wait, use_travel
+from t_arcints a, t_band b
+where use_wait = 1
+and extend(a.l2_arr, hour to second) between time_start and time_end
+--and weekday(l2_arr) between day_start and day_end
+order by l1_locid, l2_locid, travel_time;
+&quot;;
+
+$rid = executePDOQuery($sql, $conn_id );
+
+$row = fetchPDO ($rid, &quot;NEXT&quot;);
+$i=0;
+while(is_array($row))
+{
+        $sql =
+                &quot;insert into t_ord_arcwaits values ( 0, &quot;.
+                $row[&quot;timeband&quot;].&quot;,&quot;.
+                $row[&quot;dayband&quot;].&quot;,&quot;.
+                $row[&quot;route_id&quot;].&quot;,&quot;.
+                $row[&quot;operator_id&quot;].&quot;,&quot;.
+                $row[&quot;schedule_id&quot;].&quot;,&quot;.
+                $row[&quot;l1_order&quot;].&quot;,&quot;.
+                $row[&quot;l1_locid&quot;].&quot;,&quot;.
+                &quot;'&quot;.$row[&quot;l1_arr&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_dep&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_dep_pub&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_arr_status&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l1_dep_status&quot;].&quot;',&quot;.
+                $row[&quot;l2_order&quot;].&quot;,&quot;.
+                $row[&quot;l2_locid&quot;].&quot;,&quot;.
+                &quot;'&quot;.$row[&quot;l2_arr&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_dep&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_dep_pub&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_arr_status&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;l2_dep_status&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;wait_time&quot;].&quot;',&quot;.
+                &quot;'&quot;.$row[&quot;travel_time&quot;].&quot;',&quot;.
+                $row[&quot;use_wait&quot;].&quot;,&quot;.
+                $row[&quot;use_travel&quot;].&quot;)&quot;;
+                $rid1 = executePDOQuery($sql, $conn_id );
+                $i++;
+                /*
+                echo
+                &quot;WAIT &quot;.$row[&quot;l1_arr&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;l1_dep&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;l1_dep_pub&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;l1_arr_status&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;l1_dep_status&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;l2_arr_status&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;l2_dep_status&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;wait_time&quot;].&quot;,&quot;.
+                &quot;&quot;.$row[&quot;travel_time&quot;].&quot;,&quot;.
+                $row[&quot;use_wait&quot;].&quot;,&quot;.
+                $row[&quot;use_travel&quot;].&quot;n&quot;;
+                */
+                $row = fetchPDO ($rid, &quot;NEXT&quot;);
+}
+
+$sql = &quot; create index t_idx4 on t_ord_arcints ( l1_locid, l2_locid ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; create index t_idx5 on t_ord_arcwaits ( l2_locid ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot;
+select timeband, dayband, route_id, operator_id, l1_locid, l2_locid, count(*) sample_size, min(ord) minord, max(ord) maxord, ( min(ord) + (( max(ord) - min(ord) ) / 2))::int medord
+from t_ord_arcints
+where use_travel = 1
+group by 1, 2, 3, 4, 5, 6
+into temp t_intstats with no log&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+/*
+$sql = &quot; select  timeband, dayband, route_id, operator_id, b.location_code lfrom, c.location_code lto, sample_size, minord, maxord, medord
+from t_intstats a, location b, location c
+where a.l1_locid = b.location_id
+and a.l2_locid = c.location_id
+&quot;;
+
+$rid = executePDOQuery($sql, $conn_id );
+
+
+$row = fetchPDO ($rid, &quot;NEXT&quot;);
+$i=0;
+while(is_array($row))
+{
+        $i++;
+
+        echo
+                &quot;INT: &quot;.
+                &quot;Time: &quot;, $row[&quot;timeband&quot;].
+                &quot; Date: &quot;, $row[&quot;dayband&quot;].
+                &quot; Route: &quot;, $row[&quot;route_id&quot;].
+                &quot; Operator: &quot;, $row[&quot;operator_id&quot;].
+                &quot; Loc:&quot;.
+                $row[&quot;lfrom&quot;].&quot;-&quot;.
+                $row[&quot;lto&quot;].&quot; Size:&quot;.
+                $row[&quot;sample_size&quot;].&quot; Min:&quot;.
+                $row[&quot;minord&quot;].&quot; Max:&quot;.
+                $row[&quot;maxord&quot;].&quot; Med:&quot;.
+                $row[&quot;medord&quot;];
+                $row = fetchPDO ($rid, &quot;NEXT&quot;);
+        echo &quot;n&quot;;
+}
+*/
+
+
+$sql = &quot;
+select timeband, dayband, route_id, operator_id, l1_locid, l2_locid, count(*) sample_size, min(ord) minord, max(ord) maxord, ( min(ord) + (( max(ord) - min(ord) ) / 2))::int medord
+from t_ord_arcwaits
+where use_wait = 1
+group by 1, 2, 3, 4, 5, 6
+into temp t_waitstats with no log&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+/*
+$sql = &quot; select timeband, dayband, route_id, operator_id, b.location_code lfrom, c.location_code lto, sample_size, minord, maxord, medord
+from t_waitstats a, location b, location c
+where a.l1_locid = b.location_id
+and a.l2_locid = c.location_id&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$row = fetchPDO ($rid, &quot;NEXT&quot;);
+$i=0;
+while(is_array($row))
+{
+        $i++;
+        echo    &quot;WAIT: &quot;.
+                &quot;Time: &quot;, $row[&quot;timeband&quot;].
+                &quot; Date: &quot;, $row[&quot;dayband&quot;].
+                &quot; Route: &quot;, $row[&quot;route_id&quot;].
+                &quot; Operator: &quot;, $row[&quot;operator_id&quot;].
+                &quot; Loc:&quot;.
+                $row[&quot;lfrom&quot;].&quot;-&quot;.
+                $row[&quot;lto&quot;].&quot; Size:&quot;.
+                $row[&quot;sample_size&quot;].&quot; Min:&quot;.
+                $row[&quot;minord&quot;].&quot; Max:&quot;.
+                $row[&quot;maxord&quot;].&quot; Med:&quot;.
+                $row[&quot;medord&quot;];
+                $row = fetchPDO ($rid, &quot;NEXT&quot;);
+        echo &quot;n&quot;;
+}
+*/
+
+$sql = &quot;
+select unique l1_locid, l2_locid
+from t_intstats
+union
+select unique l1_locid, l2_locid
+from t_waitstats
+into temp t_replocs with no log
+&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot;
+select a.l1_locid, a.l2_locid, b.route_id, b.operator_id, b.medord, b.sample_size, b.timeband, b.dayband, c.travel_time || '' travel_time
+from t_replocs a,  outer ( t_intstats b, t_ord_arcints c )
+where a.l1_locid = b.l1_locid
+and a.l2_locid = b.l2_locid
+and b.l1_locid = c.l1_locid
+and b.l2_locid = c.l2_locid
+and b.medord = c.ord
+into temp t_intmeds with no log&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; create index t_idxim on t_intmeds ( l1_locid, l2_locid, timeband, dayband ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+
+$sql = &quot;
+select a.l1_locid, a.l2_locid, b.route_id, b.operator_id, b.medord, b.sample_size, b.timeband, b.dayband, c.wait_time || '' wait_time
+from t_replocs a,  outer ( t_waitstats b, t_ord_arcwaits c )
+where a.l1_locid = b.l1_locid
+and a.l2_locid = b.l2_locid
+and b.l1_locid = c.l1_locid
+and b.l2_locid = c.l2_locid
+and b.medord = c.ord
+into temp t_waitmeds with no log&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+$sql = &quot; create index t_idxwm on t_waitmeds ( l1_locid, l2_locid, timeband, dayband ); &quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+
+$sql = &quot; select
+a.route_id, a.operator_id,
+a.l1_locid, a.l2_locid, a.timeband, a.dayband, a.sample_size travel_size, a.travel_time, b.sample_size wait_size, b.wait_time
+from t_intmeds a, t_waitmeds b
+where  a.l1_locid = b.l1_locid
+and a.l2_locid = b.l2_locid
+and a.timeband = b.timeband
+and a.dayband = b.dayband
+and a.route_id = b.route_id
+and a.operator_id = b.operator_id
+into temp t_meds with no log
+&quot;;
+
+$rid = executePDOQuery($sql, $conn_id );
+
+if ( $apup == &quot;'APPLY'&quot; )
+{
+//printf(&quot;Selecting Op Rtn&quot;);
+$sql = &quot; select unique route_id, operator_id
+from t_waitstats
+union
+select unique route_id, operator_id
+from t_intstats
+into temp t_oprt with no log&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+
+$sql = &quot; select * from t_oprt&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+$row = fetchPDO ($rid, &quot;NEXT&quot;);
+$i=0;
+while(is_array($row))
+{
+        $i++;
+        /*echo    &quot;MED: &quot;.
+                &quot;Op: &quot;, $row[&quot;operator_id&quot;].
+                &quot; Rt: &quot;, $row[&quot;route_id&quot;];
+        echo &quot;n&quot;;*/
+
+        $rowrt = $row[&quot;route_id&quot;];
+        if ( $rowrt )
+        {
+                $sql =
+                        &quot;delete from loc_interval where band_id
+                                in ( select band_id from time_band
+                                        where route_id = $rowrt );&quot;;
+                        $rid1 = executePDOQuery($sql, $conn_id );
+
+                $sql =
+                        &quot;delete from time_band
+                                        where route_id = $rowrt;&quot;;
+                        $rid1 = executePDOQuery($sql, $conn_id );
+
+        }
+        else
+        {
+                $sql =
+                        &quot;delete from loc_interval where band_id
+                                in ( select band_id from time_band
+                                        where route_id is null );&quot;;
+                        $rid1 = executePDOQuery($sql, $conn_id );
+
+                $sql =
+                        &quot;delete from time_band
+                                        where route_id is null;&quot;;
+                        $rid1 = executePDOQuery($sql, $conn_id );
+        }
+
+        $row = fetchPDO ($rid, &quot;NEXT&quot;);
+}
+
+$sql = &quot;
+select
+a.route_id, a.operator_id,
+a.l1_locid, a.l2_locid, a.timeband, a.dayband, a.travel_size, a.travel_time || '' travel_time, a.wait_size, a.wait_time || '' wait_time,
+time_start || '' time_start, time_end || '' time_end
+from t_meds a, t_band
+where a.timeband = t_band.bandid
+and wait_size &gt; 5
+and travel_size &gt; 5
+order by operator_id, route_id, timeband, dayband, l1_locid, l2_locid
+&quot;;
+
+$rid = executePDOQuery($sql, $conn_id );
+
+$row = fetchPDO ($rid, &quot;NEXT&quot;);
+$i=0;
+$lrow = false;
+while(is_array($row))
+{
+        $i++;
+/*
+        echo    &quot;COMB: &quot;.
+                &quot;Op: &quot;, $row[&quot;operator_id&quot;].
+                &quot; Rt: &quot;, $row[&quot;route_id&quot;].
+                &quot; L1: &quot;, $row[&quot;l1_locid&quot;].
+                &quot; L2: &quot;, $row[&quot;l2_locid&quot;].
+                &quot; TM: &quot;, $row[&quot;timeband&quot;].
+                &quot; DY: &quot;, $row[&quot;dayband&quot;].
+                &quot; TZ: &quot;, $row[&quot;travel_size&quot;].
+                &quot; TV: &quot;, $row[&quot;travel_time&quot;].
+                &quot; WZ: &quot;, $row[&quot;wait_size&quot;].
+                &quot; WT: &quot;, $row[&quot;wait_time&quot;];
+        echo &quot;n&quot;;
+*/
+        if ( !$lrow ||
+                $row[&quot;operator_id&quot;] != $lrow[&quot;operator_id&quot;] ||
+                $row[&quot;route_id&quot;] != $lrow[&quot;route_id&quot;] ||
+                $row[&quot;timeband&quot;] != $lrow[&quot;timeband&quot;] ||
+                $row[&quot;dayband&quot;] != $lrow[&quot;dayband&quot;] )
+        {
+                //echo $row[&quot;operator_id&quot;].&quot;/&quot;.$lrow[&quot;operator_id&quot;].&quot;n&quot;;
+                //echo $row[&quot;route_id&quot;].&quot;/&quot;.$lrow[&quot;route_id&quot;].&quot;n&quot;;
+                //echo $row[&quot;timeband&quot;].&quot;/&quot;.$lrow[&quot;timeband&quot;].&quot;n&quot;;
+                //echo $row[&quot;dayband&quot;].&quot;/&quot;.$lrow[&quot;dayband&quot;].&quot;n&quot;;
+                $sql = &quot;insert into time_band values ( &quot;.
+                        &quot;0, &quot;.
+                        $row[&quot;operator_id&quot;]. &quot;,&quot;.
+                        $row[&quot;route_id&quot;]. &quot;,&quot;.
+                        $row[&quot;dayband&quot;]. &quot;,&quot;.
+                        &quot;'&quot;.$row[&quot;time_start&quot;]. &quot;',&quot;.
+                        &quot;'&quot;.$row[&quot;time_end&quot;]. &quot;')&quot;;
+                //echo &quot;$sqln&quot;;
+                $rid1 = executePDOQuery($sql, $conn_id );
+
+                $sql = &quot;select DBINFO('sqlca.sqlerrd1') lastserial
+                        from systables a where tabname = 'time_band'&quot;;
+                $rid1 = executePDOQuery($sql, $conn_id );
+                $row1 = fetchPDO ($rid1, &quot;NEXT&quot;);
+                if ( !$row1 )
+                {
+                        echo &quot;Failed to create timebandn&quot;;
+                        die;
+                }
+                $tbid = $row1[&quot;lastserial&quot;];
+        }
+        $lrow = $row;
+
+        $wt = $row[&quot;wait_time&quot;];
+        $tv = $row[&quot;travel_time&quot;];
+
+        if ( $wt == &quot;  0:00:00&quot; || $wt == &quot;00:00:00&quot; || $row[&quot;wait_size&quot;] &lt; 5 )
+                $wt = &quot;NULL&quot;;
+        else
+                $wt = &quot;'&quot;.$wt.&quot;'&quot;;
+        if ( $tv == &quot;0:00:00&quot; || $tv == &quot;00:00:00&quot;  || $row[&quot;travel_size&quot;] &lt; 5 )
+                $tv = &quot;NULL&quot;;
+        else
+                $tv = &quot;'&quot;.$tv.&quot;'&quot;;
+
+        $sql = &quot;insert into loc_interval values ( &quot;.
+        $row[&quot;l1_locid&quot;]. &quot;,&quot;.
+        $row[&quot;l2_locid&quot;]. &quot;,&quot;.
+        &quot;$tbid, &quot;.
+        &quot;$tv, &quot;.
+        &quot;$wt); &quot;;
+        //echo $sql.&quot;n&quot;;
+        $rid1 = executePDOQuery($sql, $conn_id );
+        $row = fetchPDO ($rid, &quot;NEXT&quot;);
+}
+}
+</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName>centurion</DatabaseName><HostName>centlive_tcp</HostName><ServiceName>?Unknown?</ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>t_meds a, t_band, route, operator, location l1, location l2, event_pattern, event</TableSql><WhereSql>        AND a.timeband = t_band.bandid
+and wait_size &gt; 5
+and travel_size &gt; 5  
+and route.route_id = a.route_id
+and route.operator_id = operator.operator_id  
+and a.l1_locid = l1.location_id
+and a.l2_locid = l2.location_id  
+and a.dayband = event_pattern.evprf_id
+and event_pattern.event_id = event.event_id</WhereSql><GroupSql>GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15</GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>time_start</Name><TableName></TableName><ColumnName>time_start || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>time_end</Name><TableName></TableName><ColumnName>time_end || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>route_id</Name><TableName>a</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>operator_id</Name><TableName>a</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>dayband</Name><TableName>a</TableName><ColumnName>dayband</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>travel_size</Name><TableName>a</TableName><ColumnName>travel_size</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Travel Ct</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>wait_size</Name><TableName>a</TableName><ColumnName>wait_size</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Wait Ct</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName></TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName></TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>l1code</Name><TableName>l1</TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>l1desc</Name><TableName>l1</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>l2code</Name><TableName>l2</TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>l2desc</Name><TableName>l2</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>travel_time</Name><TableName></TableName><ColumnName>travel_time</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>wait_time</Name><TableName></TableName><ColumnName>wait_time</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>event_code</Name><TableName></TableName><ColumnName>min(event_code)</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>event_code2</Name><TableName></TableName><ColumnName>max(event_code)</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>operator_id</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>route_id</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>event_code</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>time_start</Name><OrderType>ASC</OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments></Assignments><Criteria><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>legal_name</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator, cent_user</TableSql><WhereSql> 
+AND (
+operator.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER</WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>route</Name><Title>Route</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>route_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>route_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route, cent_user</TableSql><WhereSql> 
+AND (
+route.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER</WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_id</Name><TableName>route</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name></Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{route_code}.'/'.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks><CriteriaLink><LinkFrom>route</LinkFrom><LinkTo>operator</LinkTo><LinkClause>route.operator_id</LinkClause></CriteriaLink></CriteriaLinks></CriteriaItem><CriteriaItem><Name>date</Name><Title>Date</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>DATERANGE</CriteriaType><CriteriaDisplay>DMYFORM</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>applyupdates</Name><Title>Apply Updates</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList>=APPLY</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders><PageHeader><LineNumber>1</LineNumber><HeaderText>{title}</HeaderText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>center</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageHeader></PageHeaders><PageFooters><PageFooter><LineNumber>1</LineNumber><FooterText>Page: {#page}</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>right</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter><PageFooter><LineNumber>1</LineNumber><FooterText>Centurion RTPI</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>left</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter></PageFooters><DisplayOrders><DisplayOrder><ColumnName>operator_code</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>route_code</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>event_code</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>time_start</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>time_end</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>l1code</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>l1desc</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>l2code</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>l2desc</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>travel_time</ColumnName><OrderNumber>10</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>travel_size</ColumnName><OrderNumber>11</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>wait_time</ColumnName><OrderNumber>12</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>wait_size</ColumnName><OrderNumber>13</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>route_id</ColumnName><OrderNumber>14</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>operator_id</ColumnName><OrderNumber>15</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>dayband</ColumnName><OrderNumber>16</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>event_code2</ColumnName><OrderNumber>17</OrderNumber></DisplayOrder></DisplayOrders><Groups><Group><GroupName>time_start</GroupName><BeforeGroupHeader>blankline</BeforeGroupHeader><AfterGroupHeader>blankline</AfterGroupHeader><BeforeGroupTrailer>blankline</BeforeGroupTrailer><AfterGroupTrailer>blankline</AfterGroupTrailer><GroupHeaders><GroupHeader><GroupHeaderColumn>operator_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>route_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>event_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>time_start</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>time_end</GroupHeaderColumn></GroupHeader></GroupHeaders><GroupTrailers></GroupTrailers></Group></Groups><Graphs></Graphs></Output></EntryForm></ReportQuery></Report>

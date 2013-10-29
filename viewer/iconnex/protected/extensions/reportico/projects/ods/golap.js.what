@@ -1,0 +1,82 @@
+<?php
+
+    $op = $_criteria["operator"]->get_criteria_value("VALUE");
+    $rt = $_criteria["route"]->get_criteria_value("VALUE");
+    $since = $_criteria["since"]->get_criteria_value("VALUE");
+
+    include("projects/rti/iconnex.php");
+    $iconnex = new iconnex($_pdo);
+
+    $user = session_request_item("user", false );
+    if ( !$user )
+        $user = "admin";
+
+
+    $opwhere = "";
+    $rtwhere = "";
+    $sincewhere = "";
+    if ( $op ) $opwhere = " and operator.operator_id in ( $op )";
+    if ( $rt ) $rtwhere = " and route.route_id in ( $rt )";
+    if ( $since ) $sincewhere = " and row_changed >= $since";
+
+
+    $sql ="SELECT snapshot_vehicle_status.* 
+            FROM snapshot_vehicle_status
+            JOIN  vehicle_visibility vehicle ON snapshot_vehicle_status.vehicle_id = vehicle.vehicle_id
+            JOIN  operator ON operator.operator_id = vehicle.operator_id
+            WHERE usernm = '$user'
+            $opwhere
+            INTO TEMP t_vehpos WITH NO LOG";
+
+    if (!$iconnex->executeSQL($sql))
+       return;
+
+    $sql ="SELECT snapshot_journey_status.* 
+            FROM snapshot_journey_status
+            JOIN  route_visibility route ON snapshot_journey_status.route_id = route.route_id
+            JOIN  operator ON operator.operator_id = route.operator_id
+            WHERE usernm = '$user'
+            $opwhere
+            $rtwhere
+            $sincewhere
+            INTO TEMP t_trips WITH NO LOG";
+
+    if (!$iconnex->executeSQL($sql))
+       return;
+
+    $golap = "'Tooltips=Vehicle Code;Lateness Band;Route,'.
+        'Type=Icon,'.
+        'HotspotX=32,'.
+        'HotspotY=42,'.
+        'KeyField=Key,'.
+        'ClickLink=ajax/vehicledetailspopup.php?tripid=<<Schedule Id>>&vehicle=<<Vehicle Code>>&operator=<<Operator Code>>,'.
+        'Filters=Route;Vehicle Code;Vehicle Status;Lateness Band;Trip Type;Trip Status;Driver Name,'.
+        'FilterMoveAlerts=Lateness Band>Very Early/Very Late,'.
+        'RenderType=Despatcher,'.
+        'RenderElements=Operator Code;Route;Vehicle Code;Trip Type;Trip Status;Lateness;Vehicle Status;Bearing,'.
+        'Metric=Lateness,'.
+        'PosColor=#ff0000,'.
+        'Negcolor=#0000ff,'.
+        'ZeroColor=#00ff00,'.
+        'MetricRangeLower=-300,'.
+        'MetricRangeUpper=300'"; 
+    //echo $golap;
+    $this->add_assignment("golap", $golap, false );
+
+    for ($ct = 0; $ct < count($this->columns); $ct++)
+    {
+        $col = $this->columns[$ct];
+        if ( $col->query_name == "view_trip" ) $col->attributes["column_display"] = "hide";
+        if ( $col->query_name == "view_today" ) $col->attributes["column_display"] = "hide";
+        if ( $col->query_name == "next_location" ) $col->attributes["column_display"] = "hide";
+        if ( $col->query_name == "next_name" ) $col->attributes["column_display"] = "hide";
+        if ( $col->query_name == "start_status" ) $col->attributes["column_display"] = "hide";
+        if ( $col->query_name == "employee_code" ) $col->attributes["column_display"] = "hide";
+        if ( $col->query_name == "last_stop_lateness" ) $col->attributes["column_display"] = "hide";
+    }
+
+
+?>
+
+
+

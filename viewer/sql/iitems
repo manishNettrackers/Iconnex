@@ -1,0 +1,15 @@
+insert into items values ('Authority','2','','','');
+insert into items values ('Administrator','2','','','');
+insert into items values ('User','2','','','');
+insert into items values ('Vehicle Manager','1','','','s:0:"";');
+insert into items values ('User Manager','1','','','');
+insert into items values ('Vehicle Viewer','1','','','s:0:"";');
+insert into items values ('Create Vehicle','0','','','s:0:"";');
+insert into items values ('Edit Vehicle','0','','','s:0:"";');
+insert into items values ('View Vehicle','0','','','s:0:"";');
+insert into items values ('Delete Vehicle','0','','','s:0:"";');
+insert into items values ('Create User','0','','','');
+insert into items values ('Edit User','0','','','');
+insert into items values ('View User','0','','','');
+insert into items values ('Reporter','2','','','s:0:"";');
+insert into items values ('Bus Operator','2','Bus Operator','','s:0:"";');

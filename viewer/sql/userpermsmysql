@@ -1,0 +1,92 @@
+userbusperm ()
+{
+mode=$1
+user=$2
+op=$3
+echo $user
+if [ "$mode" = "DELETE" ]; then
+mysql -u root -h 127.0.0.1 ods <<!
+#delete from user_route WHERE userid IN ( SELECT userid FROM cent_user WHERE usernm = "$user" );
+delete from user_vehicle WHERE userid IN ( SELECT userid FROM cent_user WHERE usernm = "$user" );
+!
+fi
+mysql -u root -h 127.0.0.1 ods <<!
+#insert into user_route (userid, operator_id)
+#select userid, operator.operator_id
+#from operator, cent_user
+#where operator_code = "$op"
+#and usernm = "$user"; 
+insert into user_vehicle ( userid, vehicle_id)
+select userid, vehicle_id
+from vehicle_dimension, cent_user
+where 1 = 1
+and usernm = "$user"
+and operator_code in ( "$op"); 
+#insert into user_vehicle ( userid, vehicle_id)
+#select userid, vehicle.vehicle_id
+#from vehicle, cent_user
+#where 1 = 1
+#and usernm = "$user"
+#and vehicle_code in ( "AUT"); 
+!
+}
+
+userstopperm ()
+{
+mode=$1
+user=$2
+op=$3
+echo $user
+if [ "$mode" = "DELETE" ]; then
+mysql -u root -h 127.0.0.1 ods <<!
+delete from user_build WHERE userid IN ( SELECT userid FROM cent_user WHERE usernm = "$user" );
+!
+fi
+mysql -u root -h 127.0.0.1 ods <<!
+insert into user_build ( userid, operator_id)
+select userid, operator.operator_id
+from operator, cent_user
+where 1 = 1
+and usernm = "$user"
+and operator_code in ( "$op"); 
+!
+}
+
+
+
+
+createdbuser ()
+{
+mode=$1
+user=$2
+echo $user
+if [ "$mode" = "DELETE" ]; then
+mysql -u root -h 127.0.0.1 ods <<!
+delete from cent_user WHERE usernm =  "$user" ;
+!
+fi
+mysql -u root -h 127.0.0.1 ods <<!
+insert into cent_user values ( 0, "$user", "$user", NULL, "", "", NULL, NULL, "en_gb", "MASTER");
+!
+}
+
+
+createdbuser DELETE rgb
+createdbuser DELETE nandd
+createdbuser DELETE rbc
+createdbuser DELETE first
+createdbuser DELETE thames
+userbusperm ADD nandd WEAWAY
+userbusperm ADD rbc WBERKS
+userbusperm DELETE thames THAMES
+userbusperm DELETE rgb RGB
+userbusperm DELETE nandd WEAWAY
+userbusperm DELETE weaway WEAWAY
+userbusperm DELETE first FIRST
+
+#userstopperm DELETE rbc READ
+#userstopperm DELETE thames READ
+#userstopperm DELETE rgb READ
+#userstopperm DELETE nandd READ
+#userstopperm DELETE weaway READ
+#userstopperm DELETE first READ

@@ -1,0 +1,232 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>Comparison of Days</ReportTitle><ReportDescription></ReportDescription><PageSize>A4</PageSize><PageOrientation>Portrait</PageOrientation><TopMargin></TopMargin><BottomMargin></BottomMargin><RightMargin></RightMargin><LeftMargin></LeftMargin><pdfFont>Helvetica</pdfFont><pdfFontSize>8.0</pdfFontSize><PreExecuteCode>$dfrom = $_criteria[&quot;daterange&quot;]-&gt;get_criteria_value(&quot;RANGE1&quot;);
+$dto = $_criteria[&quot;daterange&quot;]-&gt;get_criteria_value(&quot;RANGE2&quot;);
+$rt = $_criteria[&quot;route&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$tp = $_criteria[&quot;tripno&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$op = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$runb = $_criteria[&quot;runningno&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$toTime = $_criteria[&quot;toTime&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$fromTime = $_criteria[&quot;fromTime&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+$sql = &quot;SET ISOLATION TO DIRTY READ&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+
+$sql = &quot;
+SELECT  distinct
+        art.schedule_id,
+        ptt.pub_ttb_id
+FROM    route       rot,
+        service     ser,
+        publish_tt  ptt,
+        archive_rt  art
+WHERE   ser.route_id = rot.route_id
+AND     ser.service_id = ptt.service_id
+AND     ptt.pub_ttb_id = art.pub_ttb_id
+AND     DATE(art.status_time) &gt;= DATE($dfrom)
+AND     DATE(art.status_time) &lt;= DATE($dto)&quot;;
+
+if ( $rt ) $sql .= &quot; AND rot.route_id in ( $rt )&quot;;
+if ( $op ) $sql .= &quot; AND rot.operator_id in ( $op )&quot;;
+if ( $tp ) $sql .= &quot; AND ptt.trip_no in ( $tp )&quot;;
+if ( $runb ) $sql .= &quot; AND ptt.runningno in ( $runb )&quot;;
+if ( $fromTime ) $sql .= &quot; AND ptt.start_time &gt;= $fromTime&quot;;
+if ( $toTime ) $sql .= &quot; AND ptt.start_time &lt;= $toTime&quot;;
+
+
+
+
+
+$sql .=&quot;
+INTO TEMP tempTab1
+WITH NO LOG&quot;;
+
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+
+$sql = &quot;
+SELECT  distinct
+        tt1.pub_ttb_id,
+        arl.location_id,
+        arl.rpat_orderby,
+        arl.departure_time_pub,
+        arl.departure_time
+FROM    archive_rt_loc arl,
+        tempTab1 tt1
+WHERE   tt1.schedule_id = arl.schedule_id
+AND     arl.departure_time_pub is not null
+AND     arl.departure_status = 'A'
+INTO TEMP tempTab2
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+
+$sql = &quot;
+SELECT  SUM(tt2.departure_time_pub - tt2.departure_time) lateness,
+        tt2.pub_ttb_id,
+        tt2.location_id,
+        tt2.rpat_orderby,
+        WEEKDAY(tt2.departure_time_pub) weekday
+FROM    tempTab2 tt2
+GROUP BY tt2.pub_ttb_id,tt2.location_id,tt2.rpat_orderby,5
+INTO TEMP tempTab3
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;CREATE UNIQUE INDEX WG_IDX1 ON tempTab3(pub_ttb_id, rpat_orderby, weekday)&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;
+SELECT  distinct
+        tt3.pub_ttb_id,
+        tt3.location_id,
+        tt3.rpat_orderby
+FROM    tempTab3 tt3
+INTO TEMP tempTab4
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;
+SELECT  tt4.pub_ttb_id,
+        tt4.location_id,
+        tt4.rpat_orderby,
+        tt3.lateness monday
+FROM    tempTab4 tt4,
+        OUTER tempTab3 tt3
+WHERE   tt4.pub_ttb_id = tt3.pub_ttb_id
+AND     tt4.location_id = tt3.location_id
+AND     tt4.rpat_orderby = tt3.rpat_orderby
+AND     tt3.weekday = 1
+INTO TEMP tempTab5
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;
+SELECT  tt5.pub_ttb_id,
+        tt5.location_id,
+        tt5.rpat_orderby,
+        tt5.monday,
+        tt3.lateness tuesday
+FROM    tempTab5 tt5,
+        OUTER tempTab3 tt3
+WHERE   tt5.pub_ttb_id = tt3.pub_ttb_id
+AND     tt5.location_id = tt3.location_id
+AND     tt5.rpat_orderby = tt3.rpat_orderby
+AND     tt3.weekday = 2
+INTO TEMP tempTab6
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;
+SELECT  tt6.pub_ttb_id,
+        tt6.location_id,
+        tt6.rpat_orderby,
+        tt6.monday,
+        tt6.tuesday,
+        tt3.lateness wednesday
+FROM    tempTab6 tt6,
+        OUTER tempTab3 tt3
+WHERE   tt6.pub_ttb_id = tt3.pub_ttb_id
+AND     tt6.location_id = tt3.location_id
+AND     tt6.rpat_orderby = tt3.rpat_orderby
+AND     tt3.weekday = 3
+INTO TEMP tempTab7
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;
+SELECT  tt7.pub_ttb_id,
+        tt7.location_id,
+        tt7.rpat_orderby,
+        tt7.monday,
+        tt7.tuesday,
+        tt7.wednesday,
+        tt3.lateness thursday
+FROM    tempTab7 tt7,
+        OUTER tempTab3 tt3
+WHERE   tt7.pub_ttb_id = tt3.pub_ttb_id
+AND     tt7.location_id = tt3.location_id
+AND     tt7.rpat_orderby = tt3.rpat_orderby
+AND     tt3.weekday = 4
+INTO TEMP tempTab8
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;
+SELECT  tt8.pub_ttb_id,
+        tt8.location_id,
+        tt8.rpat_orderby,
+        tt8.monday,
+        tt8.tuesday,
+        tt8.wednesday,
+        tt8.thursday,
+        tt3.lateness friday
+FROM    tempTab8 tt8,
+        OUTER tempTab3 tt3
+WHERE   tt8.pub_ttb_id = tt3.pub_ttb_id
+AND     tt8.location_id = tt3.location_id
+AND     tt8.rpat_orderby = tt3.rpat_orderby
+AND     tt3.weekday = 5
+INTO TEMP tempTab9
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+
+$sql = &quot;
+SELECT  tt9.pub_ttb_id,
+        tt9.location_id,
+        tt9.rpat_orderby,
+        tt9.monday,
+        tt9.tuesday,
+        tt9.wednesday,
+        tt9.thursday,
+        tt9.friday,
+        tt3.lateness saturday
+FROM    tempTab9 tt9,
+        OUTER tempTab3 tt3
+WHERE   tt9.pub_ttb_id = tt3.pub_ttb_id
+AND     tt9.location_id = tt3.location_id
+AND     tt9.rpat_orderby = tt3.rpat_orderby
+AND     tt3.weekday = 6
+INTO TEMP tempTab10
+WITH NO LOG&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+$sql = &quot;
+SELECT  tt10.pub_ttb_id,
+        tt10.location_id,
+        tt10.rpat_orderby,
+        tt10.monday,
+        tt10.tuesday,
+        tt10.wednesday,
+        tt10.thursday,
+        tt10.friday,
+        tt10.saturday,
+        tt3.lateness sunday
+FROM    tempTab10 tt10,
+        OUTER tempTab3 tt3
+WHERE   tt10.pub_ttb_id = tt3.pub_ttb_id
+AND     tt10.location_id = tt3.location_id
+AND     tt10.rpat_orderby = tt3.rpat_orderby
+AND     tt3.weekday = 0
+INTO TEMP tempTab11
+WITH NO LOG;
+DROP TABLE tempTab10;&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+
+
+
+</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName>centurion</DatabaseName><HostName>centlive_tcp</HostName><ServiceName>?Unknown?</ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>route_for_user rou,
+        service ser,
+        publish_tt ptt,
+        tempTab11 tt11,
+        location loc,
+        publish_time putt</TableSql><WhereSql>           AND ptt.pub_ttb_id = tt11.pub_ttb_id
+AND     ptt.service_id = ser.service_id
+AND     ser.route_id = rou.route_id
+AND     tt11.location_id = loc.location_id
+AND     putt.pub_ttb_id = ptt.pub_ttb_id
+AND     putt.location_id = tt11.location_id
+AND     putt.rpat_orderby = tt11.rpat_orderby</WhereSql><GroupSql></GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_code</Name><TableName>rou</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>trip_no</Name><TableName>ptt</TableName><ColumnName>trip_no</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>pub_ttb_id</Name><TableName>ptt</TableName><ColumnName>pub_ttb_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>runningno</Name><TableName>ptt</TableName><ColumnName>runningno</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>start_time</Name><TableName>ptt</TableName><ColumnName>start_time</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>location_code</Name><TableName>loc</TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>location_id</Name><TableName>loc</TableName><ColumnName>location_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>loc</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>rpat_orderby</Name><TableName>putt</TableName><ColumnName>rpat_orderby</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Order</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>pub_time</Name><TableName>putt</TableName><ColumnName>pub_time</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Scheduled</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>monday</Name><TableName></TableName><ColumnName>tt11.monday || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>tuesday</Name><TableName></TableName><ColumnName>tt11.tuesday || '' </ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>wednesday</Name><TableName></TableName><ColumnName>tt11.wednesday || '' </ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>thursday</Name><TableName></TableName><ColumnName>tt11.thursday || '' </ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>friday</Name><TableName></TableName><ColumnName>tt11.friday || '' </ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>saturday</Name><TableName></TableName><ColumnName>tt11.saturday || '' </ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>sunday</Name><TableName></TableName><ColumnName>tt11.sunday || '' </ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>monday_s</Name><TableName></TableName><ColumnName>(INTERVAL(00) SECOND(9) TO SECOND + monday) || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>tuesday_s</Name><TableName></TableName><ColumnName>(INTERVAL(00) SECOND(9) TO SECOND + tuesday) || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>wednesday_s</Name><TableName></TableName><ColumnName>(INTERVAL(00) SECOND(9) TO SECOND + wednesday) || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>thursday_s</Name><TableName></TableName><ColumnName>(INTERVAL(00) SECOND(9) TO SECOND + thursday) || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>friday_s</Name><TableName></TableName><ColumnName>(INTERVAL(00) SECOND(9) TO SECOND + friday) || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>saturday_s</Name><TableName></TableName><ColumnName>(INTERVAL(00) SECOND(9) TO SECOND + saturday) || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>sunday_s</Name><TableName></TableName><ColumnName>(INTERVAL(00) SECOND(9) TO SECOND + sunday) || ''</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>evprf_id</Name><TableName>ptt</TableName><ColumnName>evprf_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>route_code</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>trip_no</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>pub_ttb_id</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>rpat_orderby</Name><OrderType>ASC</OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments></Assignments><Criteria><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>legal_name</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator</TableSql><WhereSql>
+AND
+operator.operator_id IN
+( SELECT route_for_user.operator_id FROM route_for_user )</WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>operator_code</Name><OrderType></OrderType></OrderColumn></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>route</Name><Title>Route</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>route_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>route_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route_for_user route</TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_id</Name><TableName>route</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>route_code</Name><OrderType></OrderType></OrderColumn></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{route_code}.'/'.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks><CriteriaLink><LinkFrom>route</LinkFrom><LinkTo>operator</LinkTo><LinkClause>operator_id</LinkClause></CriteriaLink></CriteriaLinks></CriteriaItem><CriteriaItem><Name>runningno</Name><Title>Running Board</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>tripno</Name><Title>Trip Number</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>daterange</Name><Title>Date Range</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>DATERANGE</CriteriaType><CriteriaDisplay>DMYFIELD</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>fromTime</Name><Title>Time From</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>00:00:00</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>toTime</Name><Title>Time Until</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>23:59:59</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders><PageHeader><LineNumber>1</LineNumber><HeaderText>{title}</HeaderText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>center</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageHeader></PageHeaders><PageFooters><PageFooter><LineNumber>1</LineNumber><FooterText>Centurion RTPI</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>left</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter><PageFooter><LineNumber>1</LineNumber><FooterText>Page: {page}</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>right</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter></PageFooters><DisplayOrders><DisplayOrder><ColumnName>route_code</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>trip_no</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>pub_ttb_id</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>location_code</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>location_id</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>description</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>rpat_orderby</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>pub_time</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>monday</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>tuesday</ColumnName><OrderNumber>10</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>wednesday</ColumnName><OrderNumber>11</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>thursday</ColumnName><OrderNumber>12</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>friday</ColumnName><OrderNumber>13</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>saturday</ColumnName><OrderNumber>14</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>sunday</ColumnName><OrderNumber>15</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>monday_s</ColumnName><OrderNumber>16</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>tuesday_s</ColumnName><OrderNumber>17</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>wednesday_s</ColumnName><OrderNumber>18</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>thursday_s</ColumnName><OrderNumber>19</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>friday_s</ColumnName><OrderNumber>20</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>saturday_s</ColumnName><OrderNumber>21</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>sunday_s</ColumnName><OrderNumber>22</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>runningno</ColumnName><OrderNumber>23</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>start_time</ColumnName><OrderNumber>24</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>evprf_id</ColumnName><OrderNumber>25</OrderNumber></DisplayOrder></DisplayOrders><Groups><Group><GroupName>pub_ttb_id</GroupName><BeforeGroupHeader>blankline</BeforeGroupHeader><AfterGroupHeader>blankline</AfterGroupHeader><BeforeGroupTrailer>blankline</BeforeGroupTrailer><AfterGroupTrailer>blankline</AfterGroupTrailer><GroupHeaders><GroupHeader><GroupHeaderColumn>route_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>trip_no</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>runningno</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>start_time</GroupHeaderColumn></GroupHeader></GroupHeaders><GroupTrailers></GroupTrailers></Group></Groups><Graphs><Graph><GraphColumn>pub_ttb_id</GraphColumn><GraphColor>white</GraphColor><Title>Set Title</Title><GraphWidth>800</GraphWidth><GraphHeight>200</GraphHeight><GraphWidthPDF></GraphWidthPDF><GraphHeightPDF></GraphHeightPDF><XTitle>Location</XTitle><YTitle>Lateness</YTitle><GridPosition>back</GridPosition><XGridDisplay>major</XGridDisplay><XGridColor>gray</XGridColor><YGridDisplay>none</YGridDisplay><YGridColor>gray</YGridColor><XLabelColumn>location_code</XLabelColumn><TitleFont>Font 1</TitleFont><TitleFontStyle>Normal</TitleFontStyle><TitleFontSize>12</TitleFontSize><TitleColor>black</TitleColor><XTitleFont>Font 1</XTitleFont><XTitleFontStyle>Normal</XTitleFontStyle><XTitleFontSize>12</XTitleFontSize><XTitleColor>black</XTitleColor><YTitleFont>Font 1</YTitleFont><YTitleFontStyle>Normal</YTitleFontStyle><YTitleFontSize>12</YTitleFontSize><YTitleColor>black</YTitleColor><XAxisColor>black</XAxisColor><XAxisFont>Font 1</XAxisFont><XAxisFontStyle>Normal</XAxisFontStyle><XAxisFontSize>8</XAxisFontSize><XAxisFontColor>black</XAxisFontColor><YAxisColor>black</YAxisColor><YAxisFont>Font 1</YAxisFont><YAxisFontStyle>Normal</YAxisFontStyle><YAxisFontSize>8</YAxisFontSize><YAxisFontColor>black</YAxisFontColor><XTickInterval>1</XTickInterval><YTickInterval>4</YTickInterval><XTickLabelInterval>1</XTickLabelInterval><YTickLabelInterval>2</YTickLabelInterval><MarginColor>white</MarginColor><MarginLeft>50</MarginLeft><MarginRight>50</MarginRight><MarginTop>20</MarginTop><MarginBottom>60</MarginBottom><Plots><Plot><PlotColumn>monday_s</PlotColumn><PlotType>LINE</PlotType><LineColor>blue</LineColor><DataType>number</DataType><Legend>Monday</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>tuesday_s</PlotColumn><PlotType>LINE</PlotType><LineColor>red</LineColor><DataType>number</DataType><Legend>Tuesday</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>wednesday_s</PlotColumn><PlotType>LINE</PlotType><LineColor>green</LineColor><DataType>number</DataType><Legend>Wednesday</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>thursday_s</PlotColumn><PlotType>LINE</PlotType><LineColor>yellow</LineColor><DataType>number</DataType><Legend>Thursday</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>friday_s</PlotColumn><PlotType>LINE</PlotType><LineColor>brown</LineColor><DataType>number</DataType><Legend>Friday</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>saturday_s</PlotColumn><PlotType>LINE</PlotType><LineColor>gray</LineColor><DataType>number</DataType><Legend>Saturday</Legend><FillColor></FillColor></Plot><Plot><PlotColumn>sunday_s</PlotColumn><PlotType>LINE</PlotType><LineColor>pink</LineColor><DataType>number</DataType><Legend>Sunday</Legend><FillColor></FillColor></Plot></Plots></Graph></Graphs></Output></EntryForm></ReportQuery></Report>

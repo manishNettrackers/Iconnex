@@ -1,0 +1,7 @@
+insert into assignments values ('Administrator','23',' ','s:0:"";');
+insert into assignments values ('Authority','55',' ','s:0:"";');
+insert into assignments values ('Bus Operator','56',' ','s:0:"";');
+insert into assignments values ('Authority','61',' ','s:0:"";');
+insert into assignments values ('Authority','59',' ','s:0:"";');
+insert into assignments values ('Bus Operator','42',' ','s:0:"";');
+insert into assignments values ('Bus Operator','30',' ','s:0:"";');

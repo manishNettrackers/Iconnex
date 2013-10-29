@@ -1,0 +1,444 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>Stop Compliance Breakdown</ReportTitle><ReportDescription>The &lt;b&gt;Compliance Analysis&lt;/b&gt; report shows for each location on a route how compliant the departure times of vehicles are to the timetable. The scheduled number of arrivals, the total number of departures from the location are shown along with how many were compliant.
+&lt;p&gt;&lt;hr&gt;&lt;p&gt;
+The compliance thresholds control the timeband used to measure compliance.
+&lt;p&gt;&lt;hr&gt;&lt;p&gt;
+The lateness tolerance indicates a threshold outside which trips are deemed unsuitable for compliance reporting and are therefore excluded from the report.
+&lt;p&gt;&lt;hr&gt;&lt;p&gt;
+Select the combination of Route, Date Range, Location, Days of the Week, and Thresholds you require or Accept the default values. 
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+Select the type of Output and Level of Detail required and &lt;B&gt;Execute&lt;/B&gt;</ReportDescription><PageSize>A4</PageSize><PageOrientation>Portrait</PageOrientation><TopMargin></TopMargin><BottomMargin></BottomMargin><RightMargin></RightMargin><LeftMargin></LeftMargin><pdfFont></pdfFont><pdfFontSize></pdfFontSize><PreExecuteCode>$dfrom = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE1&quot;);
+$dto = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE2&quot;);
+$rt = $_criteria[&quot;route&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$op = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$loc = $_criteria[&quot;location&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$wkd = $_criteria[&quot;weekday&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$grp = $_criteria[&quot;grouping&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$lowlat = $_criteria[&quot;lowerlateness&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$uplat = $_criteria[&quot;upperlateness&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$latetol = $_criteria[&quot;latetol&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$starts = $_criteria[&quot;startpoint&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+$user = session_request_item(&quot;user&quot;, false );
+if ( !$user )
+    $user = &quot;admin&quot;;
+
+
+
+$gloc = false;
+$grte = false;
+$gday = false;
+if ( preg_match(&quot;/L/&quot;, $grp )) $gloc = true;
+if ( preg_match(&quot;/R/&quot;, $grp )) $grte = true;
+if ( preg_match(&quot;/D/&quot;, $grp )) $gday = true;
+
+
+$dfdy = substr($dfrom, 1,2);
+$dfmn = substr($dfrom, 4,2);
+$dfyr = substr($dfrom, 7,4);
+$dtdy = substr($dto, 1,2);
+$dtmn = substr($dto, 4,2);
+$dtyr = substr($dto, 7,4);
+
+$ifrom = mktime ( 0, 0, 0, $dfmn, $dfdy, $dfyr );
+$ito = mktime ( 0, 0, 0, $dtmn, $dtdy, $dtyr );
+
+$sql = &quot;SET ISOLATION TO DIRTY READ&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql=&quot;
+SELECT route.*
+FROM route_visibility route
+WHERE 1 = 1 
+AND usernm = '$user'
+INTO TEMP t_route WITH NO LOG
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$sql = &quot;CREATE TEMP TABLE t_days ( day date, dtime datetime year to day ) with no log;&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$ptr = $ifrom;
+while ( $ptr &lt;= $ito )
+{
+    $dt = strftime ( &quot;%d/%m/%Y&quot;, $ptr );
+    $dtm = strftime ( &quot;%Y-%m-%d&quot;, $ptr );
+
+    $sql = &quot;INSERT INTO t_days VALUES ( '&quot;.$dt.&quot;', '&quot;.$dtm.&quot;' );&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+    $ptr = $ptr + ( 24 * 60 * 60 );
+};
+
+
+$sql =&quot;
+DELETE FROM t_days WHERE WEEKDAY(day) NOT IN ( $wkd );
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+
+$sql = &quot;
+SELECT t_days.day, t_days.dtime, route_code, service_code,
+t_route.route_id, operator.operator_code operator_code,
+service.service_id, publish_tt.pub_ttb_id pub_ttb_id, over_midnight over_midnight, publish_tt.pub_prof_id
+FROM operator,t_route,service, t_days, publish_tt, event, event_pattern
+WHERE 1 = 1
+AND operator.operator_id = t_route.operator_id
+AND t_route.route_id = service.route_id
+AND publish_tt.service_id = service.service_id
+and t_days.day between service.wef_date and service.wet_date
+AND publish_tt.evprf_id = event_pattern.evprf_id
+AND event_pattern.event_id = event.event_id
+and event.event_tp = 3
+and weekday(t_days.day) between rpdy_start and rpdy_end
+and ( current &gt; extend(start_time, year to second) or
+date(current) &gt; t_days.day)
+&quot;;
+if ( $rt )
+    $sql .= &quot; AND t_route.route_id in ( $rt )&quot;;
+if ( $op )
+    $sql .= &quot; AND operator.operator_id in ( $op )&quot;;
+
+$sql .=&quot;
+INTO TEMP t_timetable WITH NO LOG
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$sql=&quot;
+SELECT service_id, max(rpat_orderby) rpat_orderby
+FROM service_patt
+WHERE service_id IN (
+SELECT service_id FROM t_timetable
+)
+GROUP BY 1
+INTO TEMP t_lastlocs WITH NO LOG;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql=&quot;
+CREATE INDEX ix_tttb ON t_timetable ( day, pub_ttb_id );
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql=&quot;
+CREATE INDEX ix_tttb2 ON t_timetable ( pub_ttb_id );
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$sql=&quot;
+SELECT day, t_timetable.pub_ttb_id, t_timetable.route_id, route_location.location_id, 
+  route_location.rpat_orderby
+FROM t_timetable, route_location, publish_tt, service_patt, t_lastlocs
+WHERE t_timetable.pub_prof_id = route_location.profile_id
+AND t_timetable.pub_ttb_id = publish_tt.pub_ttb_id
+AND publish_tt.service_id = service_patt.service_id
+AND route_location.rpat_orderby = service_patt.rpat_orderby
+AND service_patt.service_id = t_lastlocs.service_id
+AND service_patt.rpat_orderby &lt; t_lastlocs.rpat_orderby
+&quot;;
+if ($starts)
+   $sql .= &quot;AND route_location.rpat_orderby = 1&quot;;
+if ($loc)
+   $sql .= &quot;AND route_location.location_id IN ( $loc )&quot;;
+$sql .= &quot;
+INTO TEMP t_pubtime WITH NO LOG;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+if ( $gloc )
+    $loc_grpid = &quot;0 location_id&quot;;
+else
+    $loc_grpid = &quot;location_id&quot;;
+
+if ( $grte )
+    $rte_grpid = &quot;0 route_id&quot;;
+else
+    $rte_grpid = &quot;route_id&quot;;
+
+if ( $gday )
+    $day_grpid = &quot;mdy(1,1,1899) day&quot;;
+else
+    $day_grpid = &quot;day&quot;;
+
+
+$sql=&quot;
+SELECT $day_grpid, $loc_grpid, $rte_grpid, count(*) sched_ct 
+FROM t_pubtime
+GROUP BY 1, 2,3
+INTO TEMP t_pubcount WITH NO LOG;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql=&quot;
+SELECT t_timetable.day, t_timetable.route_id,
+             t_timetable.day r_day,
+             t_timetable.route_id r_route_id,
+             date(actual_start) start_date, t_timetable.pub_ttb_id pub_ttb_id,
+             actual_start,
+             archive_rt.schedule_id, t_pubtime.rpat_orderby
+FROM t_timetable,archive_rt, t_pubtime
+WHERE 1 = 1
+and t_timetable.pub_ttb_id = archive_rt.pub_ttb_id
+and t_timetable.day = date(actual_start)
+and t_timetable.day = t_pubtime.day
+and t_timetable.pub_ttb_id = t_pubtime.pub_ttb_id
+into temp t_summary_ar with no log ;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+if ( $gloc )
+    $loc_grpid = &quot;0 location_id&quot;;
+else
+    $loc_grpid = &quot;archive_rt_loc.location_id&quot;;
+
+if ( $grte )
+    $rte_grpid = &quot;0 route_id&quot;;
+else
+    $rte_grpid = &quot;t_summary_ar.route_id&quot;;
+
+
+if ( $gday )
+    $day_grpid = &quot;mdy(1,1,1899) day&quot;;
+else
+    $day_grpid = &quot;t_summary_ar.day&quot;;
+
+$grpfld = &quot;&quot;;
+$grpfld = &quot;'X'&quot;;
+
+if ( !$grte )
+   $grpfld .= &quot;||'=R'||route_code&quot;;
+
+if ( !$gloc )
+   $grpfld .= &quot;||'=L'||location_code&quot;;
+
+if ( !$gday )
+  $grpfld .= &quot;||'=D'&quot;;
+
+$grpfld .= &quot; ordtext&quot;;
+
+$sql=&quot;
+SELECT 
+&quot;.$day_grpid.&quot;,
+&quot;.$rte_grpid.&quot;,
+&quot;.$loc_grpid.&quot;,
+archive_rt_loc.location_id r_location_id,
+t_summary_ar.day r_day,
+t_summary_ar.route_id r_route_id,
+date(actual_start) start_date,
+t_summary_ar.pub_ttb_id pub_ttb_id,
+archive_rt_loc.actual_est actual_est,
+archive_rt_loc.departure_status,
+extend(archive_rt_loc.departure_time, hour to second) departure_time,
+extend(archive_rt_loc.departure_time_pub, hour to second) departure_time_pub,
+extend(departure_time, hour to second) -
+extend(departure_time_pub, hour to second) lateness
+FROM t_summary_ar, archive_rt_loc
+WHERE 1 = 1
+and t_summary_ar.schedule_id = archive_rt_loc.schedule_id
+and t_summary_ar.rpat_orderby = archive_rt_loc.rpat_orderby
+&quot;;
+if ($loc)
+$sql .= &quot;AND archive_rt_loc.location_id IN ( $loc )&quot;;
+$sql .= &quot;
+and archive_rt_loc.departure_time_pub IS NOT NULL
+and departure_status = 'A'
+and (extend(departure_time, hour to second) -
+extend(departure_time_pub, hour to second) &lt; $latetol and
+extend(departure_time_pub, hour to second) -
+extend(departure_time, hour to second) &lt; $latetol)
+into temp t_summary with no log
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql=&quot;
+select $grpfld, t_summary.route_id, t_summary.location_id, day start_date, count(*) everything
+from t_summary, route a, location b
+where 1 = 1
+and t_summary.r_route_id = a.route_id
+and t_summary.r_location_id = b.location_id
+group by 1, 2, 3, 4
+into temp t_summary_all with no log;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$sql=&quot;
+select $grpfld, t_summary.route_id, t_summary.location_id, day start_date, count(*) compliant
+from t_summary, route a, location b
+where 1 = 1
+and t_summary.r_route_id = a.route_id
+and t_summary.r_location_id = b.location_id
+and lateness between $lowlat and $uplat
+group by 1, 2, 3, 4
+into temp t_summary_ontime with no log;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql=&quot;
+select $grpfld, t_summary.route_id, t_summary.location_id, day start_date, count(*) early
+from t_summary, route a, location b
+where 1 = 1
+and t_summary.r_route_id = a.route_id
+and t_summary.r_location_id = b.location_id
+and lateness &lt; $lowlat
+group by 1, 2, 3, 4
+into temp t_summary_early with no log;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql=&quot;
+select $grpfld, t_summary.route_id, t_summary.location_id, day start_date, count(*) late
+from t_summary, route a, location b
+where 1 = 1
+and t_summary.r_route_id = a.route_id
+and t_summary.r_location_id = b.location_id
+and lateness &gt; $uplat
+group by 1, 2, 3, 4
+into temp t_summary_late with no log;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql = &quot;
+select t_summary_all.ordtext, t_summary_all.route_id, t_summary_all.location_id, t_summary_all.start_date, everything, early, compliant, late
+from t_summary_all, outer t_summary_ontime, outer t_summary_early, outer t_summary_late
+where t_summary_all.route_id = t_summary_ontime.route_id
+and t_summary_all.location_id = t_summary_ontime.location_id
+and t_summary_all.start_date = t_summary_ontime.start_date
+and t_summary_all.route_id = t_summary_early.route_id
+and t_summary_all.location_id = t_summary_early.location_id
+and t_summary_all.start_date = t_summary_early.start_date
+and t_summary_all.route_id = t_summary_late.route_id
+and t_summary_all.location_id = t_summary_late.location_id
+and t_summary_all.start_date = t_summary_late.start_date
+INTO TEMP t_summary1 WITH NO LOG
+;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+$sql = &quot;UPDATE t_summary1 SET early = 0 where early is null&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+$sql = &quot;UPDATE t_summary1 SET late= 0 where late is null&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+$sql = &quot;UPDATE t_summary1 SET compliant = 0 where compliant is null&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+
+$sql=&quot;
+select route_id, location_id, day start_date, count(*) observations
+from t_summary
+group by 1, 2, 3
+into temp t_summary2 with no log;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$sql=&quot;
+CREATE TEMP TABLE t_replocs(
+  location_id INTEGER,
+  location_code CHAR(12),
+  description CHAR(30)
+)WITH NO LOG;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$sql=&quot;
+CREATE TEMP TABLE t_reprtes(
+  route_id INTEGER,
+  route_code CHAR(12),
+  description CHAR(30)
+)WITH NO LOG;
+&quot;;
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+if ( $gloc )
+{
+$sql=&quot;
+INSERT INTO t_replocs
+VALUES ( 0, '*', '*' );
+&quot;;
+}
+else
+{
+$sql=&quot;
+INSERT INTO t_replocs
+SELECT UNIQUE a.location_id, location_code, description
+FROM location a, t_summary1 b
+WHERE a.location_id = b.location_id
+&quot;;
+}
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+if ( $grte )
+{
+$sql=&quot;
+INSERT INTO t_reprtes
+VALUES ( 0, '*', '*' );
+&quot;;
+}
+else
+{
+$sql=&quot;
+INSERT INTO t_reprtes
+SELECT UNIQUE a.route_id, route_code, description
+FROM route a, t_summary1 b
+WHERE a.route_id = b.route_id
+&quot;;
+}
+$ds-&gt;Execute($sql) or print $sql.&quot;&lt;br&gt;&quot;.$ds-&gt;ErrorMsg();
+//echo $sql.&quot;&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName>centurion</DatabaseName><HostName>centlive_tcp</HostName><ServiceName>?Unknown?</ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>t_summary1,t_summary2, t_reprtes, t_replocs, outer t_pubcount</TableSql><WhereSql>                    
+AND t_summary1.route_id = t_summary2.route_id 
+and t_summary1.location_id= t_summary2.location_id
+and t_summary1.location_id = t_replocs.location_id
+and t_summary1.start_date = t_summary2.start_date
+and t_summary1.location_id = t_pubcount.location_id
+and t_summary1.start_date = t_pubcount.day
+and t_summary1.route_id = t_pubcount.route_id
+and t_reprtes.route_id = t_summary1.route_id</WhereSql><GroupSql></GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql><SQLLimitFirst></SQLLimitFirst><SQLSkipOffset></SQLSkipOffset><SQLRaw></SQLRaw></SQL><QueryColumns><QueryColumn><Name>route_code</Name><TableName>t_reprtes</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Route Code</column_title><tooltip></tooltip><group_header_label>Route Code</group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>location_code</Name><TableName>t_replocs</TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Location</column_title><tooltip></tooltip><group_header_label>Location</group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>start_date</Name><TableName></TableName><ColumnName>t_summary1.start_date::char(10)</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Date</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>compliant</Name><TableName></TableName><ColumnName>compliant</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Compliant</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>observations</Name><TableName></TableName><ColumnName>observations</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Observations</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>routedesc</Name><TableName>t_reprtes</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Route Description</column_title><tooltip></tooltip><group_header_label>Route Description</group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>locdesc</Name><TableName>t_replocs</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Location Name</column_title><tooltip></tooltip><group_header_label>Location Name</group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>percent</Name><TableName></TableName><ColumnName>( compliant / observations ) * 100</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Compliant (%)</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>location_id</Name><TableName>t_replocs</TableName><ColumnName>location_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>sched_ct</Name><TableName></TableName><ColumnName>sched_ct</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Expected</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>ordtext</Name><TableName>t_summary1</TableName><ColumnName>ordtext</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>early</Name><TableName></TableName><ColumnName>early</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>late</Name><TableName></TableName><ColumnName>late</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>early_percent</Name><TableName></TableName><ColumnName>( early / observations ) * 100</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Early (%)</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>late_percent</Name><TableName></TableName><ColumnName>( late/ observations ) * 100</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Late (%)</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>not_late</Name><TableName></TableName><ColumnName>early + compliant</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>drill</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Drill down</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>ordtext</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>start_date</Name><OrderType></OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments><Assignment><AssignName>percent</AssignName><AssignNameNew></AssignNameNew><Expression>round({percent}, 2)</Expression><Condition></Condition></Assignment><Assignment><AssignName>percent</AssignName><AssignNameNew></AssignNameNew><Expression>{percent}.&quot; %&quot;</Expression><Condition></Condition></Assignment><Assignment><AssignName>drill</AssignName><AssignNameNew></AssignNameNew><Expression>''</Expression><Condition></Condition></Assignment><Assignment><AssignName>drill</AssignName><AssignNameNew></AssignNameNew><Expression>embed_hyperlink('&amp;nbsp;&amp;nbsp;', '/viewer/iconnex/protected/extensions/reportico/run.php?xmlin=arcstop.xml&amp;execute_mode=EXECUTE&amp;target_format=HTML&amp;target_show_body=1&amp;project=rti&amp;MANUAL_daterange_FROMDATE='.{start_date}.'&amp;MANUAL_daterange_TODATE='.{start_date}.'&amp;MANUAL_location='.{location_code}.'&amp;MANUAL_route='.{route_code}.'', true, &quot;class='expandwindow'&quot;)</Expression><Condition>preg_match('/=.*=.*=/', {ordtext})</Condition></Assignment><Assignment><AssignName>start_date</AssignName><AssignNameNew></AssignNameNew><Expression>&quot;*&quot;</Expression><Condition>{start_date}==&quot;01/01/1899&quot;</Condition></Assignment><Assignment><AssignName>early_percent</AssignName><AssignNameNew></AssignNameNew><Expression>round({early_percent}, 2 ) .&quot;%&quot;</Expression><Condition></Condition></Assignment><Assignment><AssignName>late_percent</AssignName><AssignNameNew></AssignNameNew><Expression>round({late_percent}, 2).&quot;%&quot;</Expression><Condition></Condition></Assignment></Assignments><Criteria><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>legal_name</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator, route_visibility route</TableSql><WhereSql>  
+AND operator.operator_id = route.operator_id
+AND usernm = USER
+   </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><AssignNameNew></AssignNameNew><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>route</Name><Title>Route</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>route_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>route_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route_visibility route</TableSql><WhereSql>  
+AND usernm = USER 
+ </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_id</Name><TableName>route</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name></Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><AssignNameNew></AssignNameNew><Expression>{route_code}.'/'.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks><CriteriaLink><LinkFrom>route</LinkFrom><LinkTo>operator</LinkTo><LinkClause>route.operator_id</LinkClause></CriteriaLink></CriteriaLinks></CriteriaItem><CriteriaItem><Name>date</Name><Title>Date</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>DATERANGE</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>TODAY-TODAY</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>location</Name><Title>Location</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>location_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>location_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route, route_pattern</TableSql><WhereSql>      AND route.route_id = route_pattern.route_id
+AND node_type = &quot;TP&quot;
+[ AND route.route_id IN ( {route,VALUE} ) ]
+)         </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>location_code</Name><TableName>location</TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>location</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>location_id</Name><TableName></TableName><ColumnName>location.location_id location_id 
+FROM location 
+WHERE location_id IN
+(
+SELECT</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><AssignNameNew></AssignNameNew><Expression>{location_code}.&quot; &quot;.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>weekday</Name><Title>Day Of Week</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>0,1,2,3,4,5,6</CriteriaDefaults><CriteriaList>Sunday=0,Monday=1,Tuesday=2,Wednesday=3,Thursday=4,Friday=5,Saturday=6</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>lowerlateness</Name><Title>Lower Compliancy Theshold</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>-00:01:00</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>upperlateness</Name><Title>Upper Compliancy Threshold</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>00:05:00</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>latetol</Name><Title>Lateness Tolerance</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>01:00:00</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>grouping</Name><Title>Summarise By</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList>Location=L,Route=R,Day=D</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>startpoint</Name><Title>Start Points Only </Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList>?=1</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQLRaw></SQLRaw><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders><PageHeader><LineNumber>1</LineNumber><HeaderText>{title}</HeaderText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>center</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageHeader></PageHeaders><PageFooters><PageFooter><LineNumber>1</LineNumber><FooterText>Page: {page}</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>right</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter><PageFooter><LineNumber>1</LineNumber><FooterText>Centurion RTPI</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>left</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter></PageFooters><DisplayOrders><DisplayOrder><ColumnName>route_code</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>locdesc</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>routedesc</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>start_date</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>location_code</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>sched_ct</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>observations</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>compliant</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>early</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>late</ColumnName><OrderNumber>10</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>percent</ColumnName><OrderNumber>11</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>early_percent</ColumnName><OrderNumber>12</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>late_percent</ColumnName><OrderNumber>13</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>drill</ColumnName><OrderNumber>14</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>location_id</ColumnName><OrderNumber>15</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>ordtext</ColumnName><OrderNumber>16</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>not_late</ColumnName><OrderNumber>17</OrderNumber></DisplayOrder></DisplayOrders><Groups><Group><GroupName>ordtext</GroupName><BeforeGroupHeader>blankline</BeforeGroupHeader><AfterGroupHeader>blankline</AfterGroupHeader><BeforeGroupTrailer>blankline</BeforeGroupTrailer><AfterGroupTrailer>blankline</AfterGroupTrailer><GroupHeaders><GroupHeader><GroupHeaderColumn>route_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>routedesc</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>location_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>locdesc</GroupHeaderColumn></GroupHeader></GroupHeaders><GroupTrailers></GroupTrailers></Group></Groups><Graphs><Graph><GraphColumn>ordtext</GraphColumn><GraphColor>.DEFAULT</GraphColor><Title>Location Compliance</Title><GraphWidth>.DEFAULT</GraphWidth><GraphHeight>.DEFAULT</GraphHeight><GraphWidthPDF>.DEFAULT</GraphWidthPDF><GraphHeightPDF>.DEFAULT</GraphHeightPDF><XTitle>Date</XTitle><YTitle>Compliance</YTitle><GridPosition>.DEFAULT</GridPosition><XGridDisplay>.DEFAULT</XGridDisplay><XGridColor>.DEFAULT</XGridColor><YGridDisplay>.DEFAULT</YGridDisplay><YGridColor>.DEFAULT</YGridColor><XLabelColumn>start_date</XLabelColumn><TitleFont>.DEFAULT</TitleFont><TitleFontStyle>.DEFAULT</TitleFontStyle><TitleFontSize>.DEFAULT</TitleFontSize><TitleColor>.DEFAULT</TitleColor><XTitleFont>.DEFAULT</XTitleFont><XTitleFontStyle>.DEFAULT</XTitleFontStyle><XTitleFontSize>.DEFAULT</XTitleFontSize><XTitleColor>.DEFAULT</XTitleColor><YTitleFont>.DEFAULT</YTitleFont><YTitleFontStyle>.DEFAULT</YTitleFontStyle><YTitleFontSize>.DEFAULT</YTitleFontSize><YTitleColor>.DEFAULT</YTitleColor><XAxisColor>.DEFAULT</XAxisColor><XAxisFont>.DEFAULT</XAxisFont><XAxisFontStyle>.DEFAULT</XAxisFontStyle><XAxisFontSize>.DEFAULT</XAxisFontSize><XAxisFontColor>.DEFAULT</XAxisFontColor><YAxisColor>.DEFAULT</YAxisColor><YAxisFont>.DEFAULT</YAxisFont><YAxisFontStyle>.DEFAULT</YAxisFontStyle><YAxisFontSize>.DEFAULT</YAxisFontSize><YAxisFontColor>.DEFAULT</YAxisFontColor><XTickInterval>.DEFAULT</XTickInterval><YTickInterval>.DEFAULT</YTickInterval><XTickLabelInterval>.DEFAULT</XTickLabelInterval><YTickLabelInterval>.DEFAULT</YTickLabelInterval><MarginColor>.DEFAULT</MarginColor><MarginLeft>.DEFAULT</MarginLeft><MarginRight>.DEFAULT</MarginRight><MarginTop>.DEFAULT</MarginTop><MarginBottom>.DEFAULT</MarginBottom><Plots><Plot><PlotColumn>sched_ct</PlotColumn><PlotType>OVERLAYBAR</PlotType><LineColor>black</LineColor><DataType>number</DataType><Legend>Scheduled</Legend><FillColor>lightblue</FillColor></Plot><Plot><PlotColumn>observations</PlotColumn><PlotType>OVERLAYBAR</PlotType><LineColor>black</LineColor><DataType>number</DataType><Legend>Late</Legend><FillColor>red</FillColor></Plot><Plot><PlotColumn>not_late</PlotColumn><PlotType>OVERLAYBAR</PlotType><LineColor>black</LineColor><DataType>number</DataType><Legend>Compliant</Legend><FillColor>yellow</FillColor></Plot><Plot><PlotColumn>early</PlotColumn><PlotType>OVERLAYBAR</PlotType><LineColor>black</LineColor><DataType>number</DataType><Legend>Early</Legend><FillColor>green</FillColor></Plot></Plots></Graph></Graphs></Output></EntryForm></ReportQuery></Report>

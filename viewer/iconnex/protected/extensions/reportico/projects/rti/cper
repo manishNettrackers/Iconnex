@@ -1,0 +1,5 @@
+cp bak/servpatt.xml .
+cp bak/timetab.xml .
+cp bak/timetab1.xml .
+cp bak/ttmod.xml .
+cp bak/tttoday.xml .

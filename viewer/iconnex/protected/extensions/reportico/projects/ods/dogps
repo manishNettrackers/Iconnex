@@ -1,0 +1,9 @@
+
+
+cd /opt/centurion/live/data/import
+for i in 1001198135/gpslog.24112011
+do
+wget -o lastlog --output-document peter "http://127.0.0.1/yii/iconnex/protected/extensions/reportico/run.php?xmlin=importgps.xml&execute_mode=EXECUTE&target_show_body=1&project=ods&target_format=json&MANUAL_gpsfile=$i"
+cat peter
+exit
+done

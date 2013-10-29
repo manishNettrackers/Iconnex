@@ -1,0 +1,151 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>Offline Bus-Stop Report</ReportTitle><ReportDescription>Report of Offline Bus-Stops.&lt;br&gt;&lt;br&gt;
+
+Specifying Operator(s) in the selection criteria restricts output to stops on routes operated by the specified operator(s).&lt;br&gt;&lt;br&gt;
+
+</ReportDescription><PageSize>A4</PageSize><PageOrientation>Portrait</PageOrientation><TopMargin></TopMargin><BottomMargin></BottomMargin><RightMargin></RightMargin><LeftMargin></LeftMargin><pdfFont></pdfFont><pdfFontSize></pdfFontSize><PreExecuteCode>$crt = $_criteria[&quot;route&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$cop = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+
+// -------------------------------------------------------
+// Find locations on selected routes
+// -------------------------------------------------------
+if ( $crt || $cop )
+{
+$sql =
+&quot;
+SELECT UNIQUE location_id
+FROM service_patt, service, route
+WHERE service_patt.service_id = service.service_id
+AND service.route_id  = route.route_id
+AND wet_date &gt;= TODAY
+&quot;;
+
+if ( $crt )$sql .= &quot; AND route.route_id IN ($crt)&quot;;
+if ( $cop )$sql .= &quot; AND route.operator_id IN ($cop)&quot;;
+
+$sql .= &quot; INTO TEMP t_routeloc;&quot;;
+
+
+
+$_connection-&gt;Execute($sql) or
+      print $sql.&quot; &quot;.$_connection-&gt;ErrorMsg();
+
+}
+
+
+// -------------------------------------------------------
+// Extract report locations
+// ------------------------------------------------------
+
+
+$sql = &quot;SELECT l.location_id, location_code location_code, l.bay_no bay_no, l.description description, ra.route_area_code route_area_code, latitude_degrees latitude_degrees, latitude_minutes latitude_minutes, latitude_heading latitude_heading, longitude_degrees longitude_degrees, longitude_minutes longitude_minutes, longitude_heading longitude_heading, u.build_code build_code, us.message_time message_time, us.ip_address ip_address, us.sim_no sim_no, u.build_id build_id
+FROM location l,
+     route_area ra, 
+     display_point dp, unit_build u, soft_ver s, outer unit_status us
+WHERE 1 = 1  AND l.route_area_id = ra.route_area_id
+  and l.point_type = 'S'
+  and l.location_id = dp.location_id
+  and dp.display_type = 'B'
+  and dp.build_id = u.build_id
+  and dp.build_id = us.build_id
+  and u.version_id = s.version_id
+  and u.build_code not matches '1001077*'  &quot;;
+
+
+
+if ( $cop || $crt )$sql .= &quot; AND l.location_id IN (SELECT location_id FROM t_routeloc)&quot;;
+
+$sql .=
+&quot; INTO TEMP t_locs&quot;;
+
+$_connection-&gt;Execute($sql) or
+      print $sql.&quot; &quot;.$_connection-&gt;ErrorMsg();
+
+
+
+// Delete online stops
+
+$sql = &quot;DELETE FROM t_locs
+          WHERE message_time IS NOT NULL
+            AND message_time &gt; (CURRENT - 1 UNITS HOUR)&quot;;
+
+$_connection-&gt;Execute($sql) or
+      print $sql.&quot; &quot;.$_connection-&gt;ErrorMsg();
+
+
+
+
+
+
+// -------------------------------------------------------
+// Fetch the routes each location resides on
+// --------------------------------------------------------
+$sql = &quot;CREATE TEMP TABLE t_loconrt ( location_id INTEGER, routes CHAR(40) );&quot;;
+$_connection-&gt;Execute($sql) or
+      print $sql.&quot; &quot;.$_connection-&gt;ErrorMsg();
+
+$sql =
+&quot;
+SELECT UNIQUE location_id, route_code
+FROM service_patt, service, route
+WHERE service_patt.service_id = service.service_id
+AND service.route_id = route.route_id
+AND location_id IN ( SELECT location_id FROM t_locs )
+AND wet_date &gt;= TODAY
+ORDER BY location_id&quot;;
+
+$recordSet = $ds-&gt;Execute($sql)
+   or die(&quot;$this-&gt;query_statement&lt;br&gt;Query failed : &quot; . $_connection-&gt;ErrorMsg());
+
+$lastid=&quot;&quot;;
+$rtes=&quot;&quot;;
+while (!$recordSet-&gt;EOF)
+{
+   $line = $recordSet-&gt;FetchRow();
+
+   $locid = $line[&quot;location_id&quot;];
+   $rte = trim($line[&quot;route_code&quot;]);
+
+   if ( $lastid &amp;&amp; $lastid != $locid )
+   {
+      $sql = &quot;INSERT INTO t_loconrt VALUES ( $lastid, '$rtes');&quot;;
+      $_connection-&gt;Execute($sql) or
+      print $sql.&quot; &quot;.$_connection-&gt;ErrorMsg();
+   }
+
+   if ( !$lastid || $lastid != $locid )
+      $rtes = &quot;&quot;;
+
+   if ( !$rtes )
+      $rtes .= $rte;
+   else
+      $rtes .= &quot;,&quot;.$rte;
+
+   $lastid = $locid;
+}
+
+if ( $lastid )
+{
+   $sql = &quot;INSERT INTO t_loconrt VALUES ( $lastid, '$rtes');&quot;;
+   $_connection-&gt;Execute($sql) or
+   print $sql.&quot; &quot;.$_connection-&gt;ErrorMsg();
+}
+
+
+$sql = &quot;CREATE INDEX i_t_loconrt ON t_loconrt ( location_id );&quot;;
+$_connection-&gt;Execute($sql) or
+      print $sql.&quot; &quot;.$_connection-&gt;ErrorMsg();
+
+
+</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName></DatabaseName><HostName>localhost</HostName><ServiceName></ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>t_locs, outer t_loconrt, outer unit_comments uc</TableSql><WhereSql>             
+AND t_locs.location_id = t_loconrt.location_id 
+AND t_locs.location_id = uc.location_id
+AND uc.comment_status = &quot;A&quot;</WhereSql><GroupSql></GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>location_code</Name><TableName></TableName><ColumnName>location_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Location</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>bay_no</Name><TableName></TableName><ColumnName>bay_no</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Bay</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>description</Name><TableName></TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>route_area_code</Name><TableName></TableName><ColumnName>route_area_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Area</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>latitude_degrees</Name><TableName></TableName><ColumnName>latitude_degrees</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>latitude_minutes</Name><TableName></TableName><ColumnName>latitude_minutes</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>latitude_heading</Name><TableName></TableName><ColumnName>latitude_heading</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>longitude_degrees</Name><TableName></TableName><ColumnName>longitude_degrees</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>longitude_minutes</Name><TableName></TableName><ColumnName>longitude_minutes</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>longitude_heading</Name><TableName></TableName><ColumnName>longitude_heading</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>build_code</Name><TableName></TableName><ColumnName>build_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>last_message_time</Name><TableName></TableName><ColumnName>message_time</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>ip_address</Name><TableName></TableName><ColumnName>ip_address</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>routes</Name><TableName></TableName><ColumnName>routes</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>sim_no</Name><TableName></TableName><ColumnName>sim_no</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>comments</Name><TableName></TableName><ColumnName>comments</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>latitude</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>longitude</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>last_message_time</Name><OrderType>DESC</OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments><Assignment><AssignName>latitude</AssignName><Expression>{latitude_degrees}.&quot; &quot;.{latitude_minutes}.{latitude_heading}</Expression><Condition></Condition></Assignment><Assignment><AssignName>longitude</AssignName><Expression>{longitude_degrees}.&quot; &quot;.{longitude_minutes}.{longitude_heading}</Expression><Condition></Condition></Assignment></Assignments><Criteria><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>full</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator, cent_user</TableSql><WhereSql>  
+AND (
+operator.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>route</Name><Title>Route</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>route_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>route_code</OverviewColumn><MatchColumn>full</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route, cent_user</TableSql><WhereSql>  
+AND (
+route.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_id</Name><TableName>route</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{route_code}.'/'.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders></PageHeaders><PageFooters></PageFooters><DisplayOrders><DisplayOrder><ColumnName>location_code</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>description</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>bay_no</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>route_area_code</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>latitude</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>longitude</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>latitude_degrees</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>latitude_minutes</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>latitude_heading</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>longitude_degrees</ColumnName><OrderNumber>10</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>longitude_minutes</ColumnName><OrderNumber>11</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>longitude_heading</ColumnName><OrderNumber>12</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>build_code</ColumnName><OrderNumber>13</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>ip_address</ColumnName><OrderNumber>14</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>routes</ColumnName><OrderNumber>15</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>sim_no</ColumnName><OrderNumber>16</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>comments</ColumnName><OrderNumber>17</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>last_message_time</ColumnName><OrderNumber>18</OrderNumber></DisplayOrder></DisplayOrders><Groups></Groups><Graphs></Graphs></Output></EntryForm></ReportQuery></Report>

@@ -1,0 +1,265 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>Calibration Issues</ReportTitle><ReportDescription>The &lt;b&gt;Calibration Issues&lt;/b&gt; report highlights areas of routes that are not tracking consistently well.
+&lt;BR&gt;
+This report identifies groups of successive locations that are frequently not detected by the bus systems and shows the missed location groups as a percentage of total trips run for each service pattern.
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+The Tolerance Criteria item identifies what percentage of trips for a service pattern contain a specific missed location group before they are included on this report for further analysis.
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+Select the combination of Route, Service and Date Range required or Accept the default values.  It is recommended that the date range is the current date.
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+Select the type of Output and Level of Detail required and &lt;B&gt;Execute&lt;/B&gt;</ReportDescription><PageSize>A4</PageSize><PageOrientation>Landscape</PageOrientation><TopMargin></TopMargin><BottomMargin></BottomMargin><RightMargin></RightMargin><LeftMargin></LeftMargin><pdfFont>Helvetica</pdfFont><pdfFontSize>10.0</pdfFontSize><PreExecuteCode>$dfrom = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE1&quot;);
+$dto = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE2&quot;);
+$rt = $_criteria[&quot;route&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$op = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$vh = $_criteria[&quot;vehicle&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+$dfdy = substr($dfrom, 1,2);
+$dfmn = substr($dfrom, 4,2);
+$dfyr = substr($dfrom, 7,4);
+$dtdy = substr($dto, 1,2);
+$dtmn = substr($dto, 4,2);
+$dtyr = substr($dto, 7,4);
+
+$ifrom = mktime ( 0, 0, 0, $dfmn, $dfdy, $dfyr );
+$ito = mktime ( 0, 0, 0, $dtmn, $dtdy, $dtyr );
+
+$sql = &quot;SET ISOLATION TO DIRTY READ&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+$sql = &quot;CREATE TEMP TABLE t_days ( day date );&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+$ptr = $ifrom;
+while ( $ptr &lt;= $ito )
+{
+    $dt = strftime ( &quot;%d/%m/%Y&quot;, $ptr );
+
+    $sql = &quot;INSERT INTO t_days VALUES ( '&quot;.$dt.&quot;' );&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+    $ptr = $ptr + ( 24 * 60 * 60 );
+}
+
+
+
+        $start_gap = &quot;&quot;;
+        $sql = &quot;&quot;;
+
+        $conn_id = &amp;$ds;
+
+        $sql = &quot; CREATE TEMP TABLE t_tripgaps&quot;.
+                &quot; (&quot;.
+                &quot; schedule_id           INTEGER,&quot;.
+                &quot; vehicle_code  CHAR(10),&quot;.
+                &quot; service_id            INTEGER,&quot;.
+                &quot; start_order           INTEGER,&quot;.
+                &quot; end_order             INTEGER,&quot;.
+                &quot; start_loc             INTEGER,&quot;.
+                &quot; end_loc                       INTEGER,&quot;.
+                &quot; gapct                 INTEGER&quot;.
+                &quot; ) WITH NO LOG&quot;;
+
+        $rid = executePDOQuery($sql, $conn_id );
+        if  ( ! $rid )
+        {
+                showPDOError($conn_id);
+                die;
+        }
+
+        $sql = &quot; CREATE TEMP TABLE t_servct&quot;.
+                &quot; (&quot;.
+                &quot; service_id            INTEGER,&quot;.
+                &quot; trip_ct                       INTEGER&quot;.
+                &quot; ) WITH NO LOG&quot;;
+        $rid = executePDOQuery($sql, $conn_id );
+        if  ( ! $rid )
+        {
+                showPDOError($conn_id);
+                die;
+        }
+
+        $sql =
+                &quot;SELECT a.schedule_id, vehicle_code, arrival_time, arrival_status, departure_time, departure_status, d.rpat_orderby, d.location_id, e.service_id&quot;.
+                &quot; FROM archive_rt a, vehicle b, route c, archive_rt_loc d, publish_tt e, t_days&quot;.
+                &quot; WHERE a.schedule_id = d.schedule_id&quot;.
+                &quot; AND a.vehicle_id = b.vehicle_id&quot;.
+                &quot; AND a.pub_ttb_id = e.pub_ttb_id&quot;.
+                &quot; AND a.route_id = c.route_id&quot;.
+                &quot; AND date(actual_start) = t_days.day&quot;;
+
+        if ( $vh )
+                $sql .= &quot; AND vehicle_code IN (&quot;. $vh . &quot;)&quot;;
+
+
+        if ( $rt )
+                $sql .= &quot; AND c.route_id IN (&quot;. $rt . &quot;)&quot;;
+
+
+        IF ( $op )
+                $sql .= &quot; AND c.operator_id IN (&quot;. $op . &quot;)&quot;;
+
+        $sql .= &quot; ORDER BY a.schedule_id, d.rpat_orderby&quot;;
+        $rid = executePDOQuery($sql, $conn_id );
+        if  ( ! $rid )
+        {
+                showPDOError($conn_id);
+                die;
+        }
+
+        $orow = false;
+        $start_gap = 0  ;
+
+        $row = fetchPDO ($rid, &quot;NEXT&quot;);
+        while(is_array($row))
+        {
+
+                IF ( !$orow ||
+                        $orow[&quot;schedule_id&quot;] != $row[&quot;schedule_id&quot;] ||
+                        (
+                                (
+                                        $row[&quot;departure_status&quot;] ||
+                                        $row[&quot;arrival_status&quot;]
+                                )
+                                &amp;&amp;
+                                (
+                                        $row[&quot;arrival_status&quot;] == &quot;A&quot; ||
+                                        $row[&quot;departure_status&quot;] == &quot;A&quot;  
+                                )
+                        ))
+                {
+                        if ( !$orow || $orow[&quot;schedule_id&quot;] != $row[&quot;schedule_id&quot;] )
+                        {
+                                $sql = &quot;SELECT COUNT(*) ct FROM t_servct WHERE service_id = &quot;.$row[&quot;service_id&quot;];
+                                $r = executePDOQuery($sql, $conn_id );
+                                $row1 = fetchPDO ( $r, $conn_id );
+                                if ( $row1[&quot;ct&quot;] == 0 )
+                                        $sql = &quot;INSERT INTO t_servct VALUES ( &quot;.$row[&quot;service_id&quot;].&quot;, 1 )&quot;;
+                                else
+                                        $sql = &quot;UPDATE t_servct SET trip_ct = trip_ct + 1 WHERE service_id = &quot;.$row[&quot;service_id&quot;];
+                                $r = executePDOQuery($sql, $conn_id );
+                                if  ( ! $r ) { showPDOError($conn_id); die; }
+                        }
+                        IF ( $start_gap &gt; 1 )
+                        {
+                                $ed_gap = $orow;
+//                                echo &quot;Gap &quot;. $start_gap. &quot; &quot;.$st_gap[&quot;location_id&quot;]. &quot;-&quot;. $ed_gap[&quot;location_id&quot;].&quot;n&lt;br&gt;&quot;;
+                                $sql = &quot;INSERT INTO t_tripgaps VALUES (&quot;.
+                                        $st_gap[&quot;schedule_id&quot;].&quot;,&quot;.
+                                        &quot;'&quot;.trim($st_gap[&quot;vehicle_code&quot;]).&quot;',&quot;.
+                                        $st_gap[&quot;service_id&quot;].&quot;,&quot;.
+                                        $st_gap[&quot;rpat_orderby&quot;].&quot;,&quot;.
+                                        $ed_gap[&quot;rpat_orderby&quot;].&quot;,&quot;.
+                                        $st_gap[&quot;location_id&quot;].&quot;,&quot;.
+                                        $ed_gap[&quot;location_id&quot;].&quot;,&quot;.
+                                        $start_gap .&quot;)&quot;;
+                                $r = executePDOQuery($sql, $conn_id );
+                                if  ( ! $r ) { showPDOError($conn_id); die; }
+                        }
+                        $st_gap = false;
+                        $ed_gap = false;
+                        $start_gap = 0  ;
+                        IF  (
+                                (
+                                        !$row[&quot;departure_status&quot;] &amp;&amp;
+                                        !$row[&quot;arrival_status&quot;]
+                                )
+                                or
+                                (
+                                  ( $row[&quot;arrival_status&quot;] == &quot;E&quot; or
+                                    $row[&quot;arrival_status&quot;] == &quot;C&quot;
+                                  ) &amp;&amp; (
+                                  $row[&quot;departure_status&quot;] == &quot;E&quot; or
+                                  $row[&quot;departure_status&quot;] == &quot;C&quot;
+                                  )
+                                ) )
+                        {
+                                $st_gap = $row;
+                                $start_gap = $start_gap + 1;
+                        }
+                } else {
+                        IF ( !$start_gap )
+                                $st_gap= $row;
+
+                        $start_gap = $start_gap + 1;
+/*
+                        echo &quot;Gap &quot;.
+                                $row[&quot;schedule_id&quot;]. &quot; &quot;.
+                                $row[&quot;service_id&quot;]. &quot; &quot;.
+                                $row[&quot;location_id&quot;]. &quot; &quot;.
+                                $row[&quot;rpat_orderby&quot;]. &quot; &quot;.
+                                &quot; &quot;. $row[&quot;vehicle_code&quot;].
+                                &quot; &quot;. $row[&quot;arrival_status&quot;]. &quot;/&quot;.
+                                $row[&quot;departure_status&quot;].&quot;n&quot;;
+*/
+                }
+
+                $orow = $row;
+                $row = fetchPDO ($rid, &quot;NEXT&quot;);
+        }
+
+         $sql = &quot;
+SELECT route.route_code route_code, service.wef_date wef_date, service.wet_date wet_date, service.service_code service_code, t_tripgaps.start_order start_order, t_tripgaps.end_order end_order, t_servct.trip_ct trip_ct, t_tripgaps.start_loc, t_tripgaps.end_loc, count(*) occurrences, min(schedule_id) schedule_id 
+FROM t_tripgaps, outer (service, route, t_servct) 
+WHERE 1 = 1   AND t_tripgaps.service_id = service.service_id 
+AND service.route_id = route.route_id
+AND t_servct.service_id = service.service_id GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
+HAVING COUNT(*) &gt; 1
+INTO TEMP t_output WITH NO LOG 
+&quot;;
+
+$rid = executePDOQuery($sql, $conn_id );
+
+function executePDOQuery( $in_sql, $in_conn )
+{
+        $rid = $in_conn-&gt;Execute($in_sql);
+        if ( !$rid )
+        {
+            echo &quot;$in_sql&lt;br&gt;Query failed : &quot;;
+            showPDOError($in_conn);
+            die;
+        }
+        return $rid;
+}
+
+function &amp;fetchPDO( &amp;$in_stmt, $in_type = &quot;NEXT&quot; )
+{
+        $result = $in_stmt-&gt;FetchRow();
+        return $result;
+}
+
+function showPDOError( $in_conn )
+{
+        echo $in_conn-&gt;ErrorMsg();
+}
+
+function clone_array($inarr)
+{
+
+        $outarr = array();
+        $outarr[&quot;schedule_id&quot;] = $inarr[&quot;schedule_id&quot;];
+        $outarr[&quot;vehicle_code&quot;] = $inarr[&quot;vehicle_code&quot;];
+        $outarr[&quot;arrival_time&quot;] = $inarr[&quot;arrival_time&quot;];
+        $outarr[&quot;arrival_status&quot;] = $inarr[&quot;arrival_status&quot;];
+        $outarr[&quot;departure_time&quot;] = $inarr[&quot;departure_time&quot;];
+        $outarr[&quot;departure_status&quot;] = $inarr[&quot;departure_status&quot;];
+        $outarr[&quot;rpat_orderby&quot;] = $inarr[&quot;rpat_orderby&quot;];
+        $outarr[&quot;location_id&quot;] = $inarr[&quot;location_id&quot;];
+        $outarr[&quot;service_id&quot;] = $inarr[&quot;service_id&quot;];
+
+        $inarr[&quot;service_id&quot;] = 56;
+var_dump($outarr);
+
+        return $outarr;
+}
+
+</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName>centurion</DatabaseName><HostName>centlive_tcp</HostName><ServiceName>?Unknown?</ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>t_output, location a, location b</TableSql><WhereSql>        
+AND t_output.start_loc = a.location_id
+AND t_output.end_loc = b.location_id
+AND occurrences / trip_ct &gt;= {tolerance,VALUE} / 100</WhereSql><GroupSql></GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_code</Name><TableName>t_output</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Route Code</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>occurrences</Name><TableName>t_output</TableName><ColumnName>occurrences</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Times Missed</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>wef_date</Name><TableName>t_output</TableName><ColumnName>wef_date</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Service Effective From</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>wet_date</Name><TableName>t_output</TableName><ColumnName>wet_date</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>service_code</Name><TableName>t_output</TableName><ColumnName>service_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>start_order</Name><TableName>t_output</TableName><ColumnName>start_order</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>end_order</Name><TableName>t_output</TableName><ColumnName>end_order</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>trip_ct</Name><TableName>t_output</TableName><ColumnName>trip_ct</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Total Trips</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>schedule_id</Name><TableName>t_output</TableName><ColumnName>schedule_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>from_loc</Name><TableName>a</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>to_loc</Name><TableName>b</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>percent</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>route_code</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>service_code</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>start_order</Name><OrderType></OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments><Assignment><AssignName>percent</AssignName><Expression>round(100 * {occurrences} / {trip_ct} , 2)</Expression><Condition></Condition></Assignment><Assignment><AssignName>schedule_id</AssignName><Expression>'&lt;a target=&quot;_blank&quot; href=&quot;'.SW_HTTP_BASEDIR.'/runedit.php?xmlin=arcrtesched.xml&amp;execute_mode=EXECUTE&amp;target_format=HTML&amp;target_show_body=1&amp;project='.SW_PROJECT.'&amp;MANUAL_schedule='.{schedule_id}.'&quot;&gt;Drill&lt;/a&gt;'</Expression><Condition></Condition></Assignment></Assignments><Criteria><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>legal_name</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator, cent_user</TableSql><WhereSql> 
+AND (
+operator.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER</WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>route</Name><Title>Route</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>route_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>route_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route, cent_user</TableSql><WhereSql> 
+AND (
+route.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER</WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_id</Name><TableName>route</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name></Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{route_code}.'/'.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks><CriteriaLink><LinkFrom>route</LinkFrom><LinkTo>operator</LinkTo><LinkClause>route.operator_id</LinkClause></CriteriaLink></CriteriaLinks></CriteriaItem><CriteriaItem><Name>date</Name><Title>Date</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>DATERANGE</CriteriaType><CriteriaDisplay>DMYFORM</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>vehicle</Name><Title>Vehicle</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>tolerance</Name><Title>Tolerance (%)</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>50</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders><PageHeader><LineNumber>1</LineNumber><HeaderText>{title}</HeaderText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>center</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageHeader></PageHeaders><PageFooters><PageFooter><LineNumber>1</LineNumber><FooterText>Page: {#page}</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>right</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter><PageFooter><LineNumber>1</LineNumber><FooterText>Centurion RTPI</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>left</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter></PageFooters><DisplayOrders><DisplayOrder><ColumnName>route_code</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>service_code</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>wef_date</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>wet_date</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>start_order</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>end_order</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>from_loc</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>to_loc</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>occurrences</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>trip_ct</ColumnName><OrderNumber>10</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>percent</ColumnName><OrderNumber>11</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>schedule_id</ColumnName><OrderNumber>12</OrderNumber></DisplayOrder></DisplayOrders><Groups></Groups><Graphs></Graphs></Output></EntryForm></ReportQuery></Report>

@@ -1,0 +1,542 @@
+718|10|U1.3|WESTERN ESPLANADE (STATION)|WESTERN ESPLANADE (S|WESTERN ESPLANADE (S|WESTERN ESPLANADE (S|
+719|10|U1.4|Eastern Docks|Eastern Docks|Eastern Docks|Eastern Docks|
+720|1|UNK|Unknown|Unknown|||
+721|1|UNKNOWN|UNKNOWN|UNKNOWN|UNKNOWN|UNKNOWN|
+725|10|U1.5|Airport Parkway|Airport Parkway|Airport Parkway|Airport Parkway|
+726|10|U1.6|Town Quay|Town Quay|Town Quay|Town Quay|
+727|10|U1.7|Wessex Lane|Wessex Lane|Wessex Lane|Wessex Lane|
+728|10|BEN|Crematorium|Crematorium|||
+729|10|SGH|General Hosp|General Hosp|||
+730|1|SOC|Oceanography Centre|Oceanography Centre|Oceanography Centre|Oceanography Centre|
+731|10|BAR|Bargate (Holy Rood)|Bargate (Holy Rood)|Bargate (Holy Rood)|Bargate (Holy Rood)|
+732|1|CRS|Central Rail Station|Central Station|Central Rail Station|Central Rail Station|
+733|10|EAST|Eastleigh|Eastleigh|||
+734|1|PARK|Parkway Station|Parkway Station|Parkway Station|Parkway Station|
+735|10|TQ|Town Quay|Town Quay|Town Quay|Town Quay|
+736|1|WL|Wessex  Lane|Wessex  Lane|Wessex  Lane|Wessex  Lane|
+737|1|ASDA|Chandlers Ford ASDA|Chandlers Ford ASDA|Chandlers Ford ASDA|Chandlers Ford ASDA|
+738|1|NC|New College|New College|New College|New College|
+739|1|NIS|Not In Service|Not In Service|Not In Service|Not In Service|
+740|1|CIVIC|Civic Centre|Civic Centre|Civic Centre|Civic Centre|
+741|1|UNI|Southampton University Interchange|University|Southampton Universi|Southampton Universi|
+72|1|1|Central Station|Central Station|Central Station|Central Station|
+73|1|2|Town Quay|Town Quay|Town Quay|Town Quay|
+177|1|3|Highfield|Highfield|Highfield|Highfield|
+178|1|4|Portswood|Portswood|Portswood|Portswood|
+179|9|R20_D1|Shirley  Precinct|ShirleyPrecinct|Shirley  Precinct|Shirley  Precinct|
+180|9|R20_D2|City Sussex Rd|City Sussex Rd|City Sussex Rd|City Sussex Rd|
+181|9|R20_D3|Highfield|Highfield|Highfield|Highfield|
+182|9|R20_D4|Portswood|Portswood|Portswood|Portswood|
+713|9|003D1|Townhill Park|Townhill Park|Townhill Park|Townhill Park|
+714|9|003D2|City Vincents Walk|City Vincents Walk|City Vincents Walk|City Vincents Walk|
+715|9|003D3|Portswood|Portswood|Portswood|Portswood|
+716|9|LD1|Central Station|Central Station|Central Station|Central Station|
+717|9|LD2|Town Quay|Town Quay|Town Quay|Town Quay|
+742|10|CIVIC|Civic Centre|Civic Centre|||
+743|10|CRS|Central Station|Central Station|||
+744|10|NIS|Not In Service|Not In Service|Not In Service|Not In Service|
+745|10|SOC|Oceanography Centre|Oceanography Centre|Oceanography Centre|Oceanography Centre|
+746|10|UNI|University|University|||
+747|10|UNK|Unknown|Unknown|Unknown|Unknown|
+748|10|WL|Wessex  Lane|Wessex  Lane|||
+749|10|UNKNOWN|UNKNOWN|UNKNOWN|UNKNOWN|UNKNOWN|
+752|10|ASDA|Chandlers Ford ASDA|Chandlers Ford ASDA|Chandlers Ford ASDA|Chandlers Ford ASDA|
+753|10|NC|New College|New College|New College|New College|
+754|9|ALDHC|Aldermoor|Aldermoor|Aldermoor|Aldermoor|
+755|9|ALDWWN|Aldermoor Woodman|Aldermoor Woodman|Aldermoor Woodman|Aldermoor Woodman|
+756|9|NIS|Not In Service|Not In Service|Not In Service|Not In Service|
+757|9|NSLGIE|Nursling|Nursling|Nursling|Nursling|
+758|9|RSH|Royal South Hants Hospital|Royal South Hants Ho|Royal South Hants Ho|Royal South Hants Ho|
+759|9|UNK|Unknown|Unknown|||
+760|9|LRDSHL|Lords Hill Centre|Lords Hill Centre|Lords Hill Centre|Lords Hill Centre|
+761|10|DG4|Dock Gate 4|Dock Gate 4|||
+762|10|PARK|Airport|Airport|||
+763|9|ALDMR|Aldermoor|Aldermoor|Aldermoor|Aldermoor|
+764|9|BCHN|Buchanan Rd|Buchanan Rd|Buchanan Rd|Buchanan Rd|
+765|9|BKRSDR|Bakers Drove|Bakers Drove|Bakers Drove|Bakers Drove|
+766|9|BWRTH|Beauworth Avenue|Beauworth Avenue|Beauworth Avenue|Beauworth Avenue|
+767|9|CCENT|City Centre|City Centre|City Centre|City Centre|
+768|9|FRFXCT|Fairfax Court|Fairfax Court|Fairfax Court|Fairfax Court|
+769|9|KPLGCT|Kipling Court|Kipling Court|Kipling Court|Kipling Court|
+770|9|MRGN|Moorgreen Hospital|Moorgreen Hospital|Moorgreen Hospital|Moorgreen Hospital|
+771|9|BTLKSH|Butlocks Heath|Butlocks Heath|Butlocks Heath|Butlocks Heath|
+772|9|MDNBRY|Midanbury|Midanbury|Midanbury|Midanbury|
+773|9|MLBRK|The Swan, Millbrook|The Swan, Millbrook|The Swan, Millbrook|The Swan, Millbrook|
+774|9|NTLY|Netley, Ingleside|Netley, Ingleside|Netley, Ingleside|Netley, Ingleside|
+775|9|PRKST|Park Street, Shirley|Park Street, Shirley|Park Street, Shirley|Park Street, Shirley|
+776|9|PRTSWD|Portswood|Portswood|Portswood|Portswood|
+777|9|TTN|Totton|Totton|Totton|Totton|
+778|9|AM|Aldermoor|Aldermoor|Aldermoor|Aldermoor|
+779|9|BJ|Bursledon Rd, Jewsons|Bursledon Rd, Jewson|Bursledon Rd, Jewson|Bursledon Rd, Jewson|
+780|9|BR|Bullar Road|Bullar Road|Bullar Road|Bullar Road|
+781|9|BWER|Bitterne, West End Rd|Bitterne, West End R|Bitterne, West End R|Bitterne, West End R|
+782|9|CC|City Centre|City Centre|||
+783|9|HR|City Centre|City Centre|City Centre|City Centre|
+784|9|LH|Lordshill|Lordshill|||
+804|9|BB|Butts Road|Butts Road|||
+790|9|GE|Glen Eyre|Glen Eyre|||
+791|9|SGS|St Georges School|St Georges School|St Georges School|St Georges School|
+792|9|UB|University, Burgess Rd|University, Burgess|University, Burgess|University, Burgess|
+793|9|WH| | |||
+794|9|WLSTN|Woolston, Link Rd|Woolston, Link Rd|Woolston, Link Rd|Woolston, Link Rd|
+795|9|CS|Central Station|Central Station|Central Station|Central Station|
+796|9|HS|Hamble Square|Hamble Square|Hamble Square|Hamble Square|
+797|9|SG|Sarisbury Green|Sarisbury Green|Sarisbury Green|Sarisbury Green|
+798|9|TJ|Town Junction|Town Junction|Town Junction|Town Junction|
+799|9|GH|General Hosp|General Hosp|||
+800|9|HMBL|Hamble Square|Hamble Square|Hamble Square|Hamble Square|
+801|9|LRDHL|Lordshill|Lordshill|Lordshill|Lordshill|
+802|9|WSTN|Weston, Kipling Ct|Weston, Kipling Ct|Weston, Kipling Ct|Weston, Kipling Ct|
+803|9|WSTNIW|Weston, International Way|Weston, Internationa|Weston, Internationa|Weston, Internationa|
+805|9|CG|Chartwell Green|Chartwell Green|||
+806|9|MG|Moorgreen|Moorgreen|||
+807|9|RY|Romsey Bus Station|Romsey Bus Station|Romsey Bus Station|Romsey Bus Station|
+808|9|TH|Thornhill|Thornhill|||
+809|9|PW|Portswood|Portswood|||
+810|9|TP|Townhill Park|Townhill Park|||
+811|9|LW|Leisure World|Leisure World|Leisure World|Leisure World|
+812|9|Univ|University Rd|University Rd|University Rd|University Rd|
+813|9|HE|Hedge End|Hedge End|Hedge End|Hedge End|
+814|10|CC|City Centre|City Centre|||
+815|9|Highf|Highfield|Highfield|Highfield|Highfield|
+816|9|Pwood|Portswood|Portswood|Portswood|Portswood|
+817|9|Shirl|Shirley Precinct|Shirley Precinct|Shirley Precinct|Shirley Precinct|
+818|10|OAK TR|Bitterne Park|Bitterne Park|Bitterne Park|Bitterne Park|
+819|10|TAUNT|Taunton College|Taunton College|Taunton College|Taunton College|
+820|10|Whill|Witts Hill|Witts Hill|Witts Hill|Witts Hill|
+821|9|ChartG|Chartwell Green|Chartwell Green|Chartwell Green|Chartwell Green|
+822|9|WR|Winn Road|Winn Road|Winn Road|Winn Road|
+823|9|IBM|IBM Hursley|IBM Hursley|||
+824|9|Soton|Southampton|Southampton|Southampton|Southampton|
+825|9|WE|West End Rd|West End|West End Rd|West End Rd|
+826|11|CS|Chandlers Ford|Chandlers Ford|Chandlers Ford|Chandlers Ford|
+827|11|NIS|Not In Service|Not In Service|Not In Service|Not In Service|
+828|11|SB|Southampton Bargate|Southampton Bargate|Southampton Bargate|Southampton Bargate|
+829|11|UNK|Unknown|Unknown|Unknown|Unknown|
+830|11|WB|Winchester|Winchester|||
+831|11|CC|City Centre|City Centre|||
+832|11|EB|Eastleigh|Eastleigh|||
+833|11|FO|Fair Oak|Fair Oak|||
+834|11|RSq|North Stoneham|North Stoneham|||
+835|11|EL|Eastleigh|Eastleigh|Eastleigh|Eastleigh|
+836|11|WN|Nuffield Hospital|Nuffield Hospital|Nuffield Hospital|Nuffield Hospital|
+837|9|ALD|Aldermoor|Aldermoor|||
+838|9|ALDWDM|Aldermoor Woodman|Aldermoor Woodman|Aldermoor Woodman|Aldermoor Woodman|
+839|9|NIECAM|Nursling Industrial Estate - Canberra Rd|Nursling Industrial|Nursling Industrial|Nursling Industrial|
+840|9|SPRHIL|Springhill Sch|Springhill Sch|||
+841|9|Butts|Butts Rd|Butts Rd|Butts Rd|Butts Rd|
+842|9|BV|Bevois Valley|Bevois Valley|Bevois Valley|Bevois Valley|
+843|9|Bit|Bitterne Road|Bitterne Road|Bitterne Road|Bitterne Road|
+844|9|WP|Weston Park Sch|Weston Park Sch|Weston Park Sch|Weston Park Sch|
+845|9|BSCH|Bellemoor Boys School|Bellemoor Sch|Bellemoor Boys Schoo|Bellemoor Boys Schoo|
+846|9|BS|Bitterne Shops|Bitterne Shops|||
+847|10|GHosp|General Hospital|General Hospital|General Hospital|General Hospital|
+848|10|Thill|Townhill Park|Townhill Park|Townhill Park|Townhill Park|
+849|10|STONE|Lobelia Rd|Lobelia Rd|Lobelia Rd|Lobelia Rd|
+850|10|LD1|Central Station|Central Station|Central Station|Central Station|
+851|10|LD2|Town Quay|Town Quay|Town Quay|Town Quay|
+852|11|HG|Hedge End|Hedge End|||
+853|11|St An|City, St Annes|City, St Annes|City, St Annes|City, St Annes|
+854|11|Asda|Chestnut Ave|Chestnut Ave|Chestnut Ave|Chestnut Ave|
+855|11|BPC|Barton Peveril|Barton Peveril|Barton Peveril|Barton Peveril|
+856|11|Hilt|Hiltingbury|Hiltingbury|Hiltingbury|Hiltingbury|
+857|11|Sch La|School Lane|School Lane|School Lane|School Lane|
+858|11|Val Pk|Valley Park|Valley Park|Valley Park|Valley Park|
+859|11|NorthB|Nth Baddersley|Nth Baddersley|||
+860|11|RomBus|Romsey|Romsey|||
+861|11|BG|Boorley Green|Boorley Green|Boorley Green|Boorley Green|
+862|11|BR|Bursledon, Botley Road|Bursledon, Botley Ro|Bursledon, Botley Ro|Bursledon, Botley Ro|
+863|11|CW|Castle Way, (Bargate)|Castle Way, (Bargate|Castle Way, (Bargate|Castle Way, (Bargate|
+864|11|HT|Hightown|Hightown|||
+865|11|KA|Millbrook, Kendall Avenue|Millbrook, Kendall A|Millbrook, Kendall A|Millbrook, Kendall A|
+866|11|LH|Lord's Hill|Lord's Hill|||
+867|11|MB|Millbrook|Millbrook|||
+868|11|OAK|Oaklands Estate|Oaklands Estate|Oaklands Estate|Oaklands Estate|
+869|11|TE|Tescos, Bursledon|Tescos, Bursledon|Tescos, Bursledon|Tescos, Bursledon|
+870|11|TPO|Thornhill Post Office|Thornhill Post Offic|Thornhill Post Offic|Thornhill Post Offic|
+871|11|VW|Vincents Walk|Vincents Walk|Vincents Walk|Vincents Walk|
+872|11|WE|West End|West End|West End|West End|
+873|11|HHL|Hedge End|Hedge End|Hedge End|Hedge End|
+874|11|HS|Hamble Square|Hamble Square|Hamble Square|Hamble Square|
+875|11|MAN|Mansbridge|Mansbridge|Mansbridge|Mansbridge|
+876|11|NG|Netley|Netley|Netley|Netley|
+877|11|SL|Satchell Lane|Satchell Lane|Satchell Lane|Satchell Lane|
+878|11|BW|Bishops Waltham|Bishops Waltham|||
+879|11|HH|Horton Heath|Horton Heath|||
+880|11|SW|Swanmore|Swanmore|||
+881|11|WC|Waltham Chase|Waltham Chase|||
+882|11|LR|Chandlers Ford|Chandlers Ford|||
+883|11|NUF|Nuffield Hosp|Nuffield Hosp|||
+884|11|AP|Applemore College|Applemore College|Applemore College|Applemore College|
+885|11|BF|Blackfield Cross Roads|Blackfield Cross Roa|Blackfield Cross Roa|Blackfield Cross Roa|
+886|11|BFrd|Blackfield Road|Blackfield Road|Blackfield Road|Blackfield Road|
+887|11|CB|Calshot|Calshot|||
+888|11|FS|Fawley|Fawley|||
+889|11|LF|Langley Farm|Langley Farm|||
+890|11|OS|Orchard School|Orchard School|Orchard School|Orchard School|
+891|11|BGT|Bargate|Bargate|Bargate|Bargate|
+892|11|CAD|Cadnam|Cadnam|||
+893|11|GDS|Goodies, Totton|Goodies, Totton|Goodies, Totton|Goodies, Totton|
+894|11|LW|Leisure World|Leisure World|||
+895|11|TTN|Totton, Centre|Totton, Centre|Totton, Centre|Totton, Centre|
+896|11|WH|White Hart, Cadnam|White Hart, Cadnam|White Hart, Cadnam|White Hart, Cadnam|
+897|11|CAL|Calmore|Calmore|||
+898|11|PO|Portsmouth|Portsmouth|||
+899|11|SO|Southampton|Southampton|||
+900|9|KC|Weston|Weston|Weston|Weston|
+901|9|TT|Totton|Totton|Totton|Totton|
+902|9|UN|University|University|University|University|
+903|9|MR|Midanbury|Midanbury|Midanbury|Midanbury|
+904|9|RB|Rosebowl|Rosebowl|||
+905|9|BW|Beauworth Ave|Beauworth Ave|Beauworth Ave|Beauworth Ave|
+906|9|BHR|Buchanan Rd|Buchanan Rd|Buchanan Rd|Buchanan Rd|
+907|9|BKD|Bakers Drove|Bakers Drove|Bakers Drove|Bakers Drove|
+908|9|StM|Sholing|Sholing|||
+909|9|TRH|Thornhill|Thornhill|Thornhill|Thornhill|
+910|9|AP|Airport|Airport|||
+911|9|HB|Hamble|Hamble|||
+912|9|KG|Weston|Weston|Weston|Weston|
+913|9|RH|RSH Hospital|RSH Hospital|||
+914|9|WN|Weston|Weston|||
+915|9|NC|Nursling|Nursling|||
+916|9|CP|RSH Hospital|RSH Hospital|RSH Hospital|RSH Hospital|
+917|9|STG|St Georges Sch|St Georges Sch|St Georges Sch|St Georges Sch|
+918|9|MB|Midanbury|Midanbury|Midanbury|Midanbury|
+919|9|SA|Harefield|Harefield|||
+920|9|RW|Rownhams|Rownhams|Rownhams|Rownhams|
+921|9|6D|Six Dials|Six Dials|Six Dials|Six Dials|
+922|9|BGRN|Bassett Green|Bassett Green|Bassett Green|Bassett Green|
+923|11|HF|Hythe|Hythe|||
+924|11|DB|Dibden Purlieu|Dibden Purlieu|Dibden Purlieu|Dibden Purlieu|
+925|11|HX|Blackfield|Blackfield|||
+926|9|WL|Woolston|Woolston|||
+927|10|TP|Townhill Park|Townhill Park|||
+928|12|CAD|Cadnam|Cadnam|Cadnam|Cadnam|
+929|12|CC|City Centre|City Centre|||
+930|12|FRT|Fritham|Fritham|Fritham|Fritham|
+931|12|LND|Lyndhurst|Lyndhurst|||
+932|12|BRK|Brockenhurst|Brockenhurst|||
+933|12|LYN|Lymington|Lymington|||
+934|12|SALS|Salisbury|Salisbury|||
+935|12|WAD|Whaddon|Whaddon|||
+936|12|BM|Bournemouth|Bournemouth|Bournemouth|Bournemouth|
+937|12|RW|Ringwood|Ringwood|||
+938|9|GOS|Gosport|Gosport|Gosport|Gosport|
+939|9|LOC|Locks Heath|Locks Heath|Locks Heath|Locks Heath|
+940|9|STUB|Stubbington|Stubbington|Stubbington|Stubbington|
+941|9|FAR|Fareham|Fareham|Fareham|Fareham|
+942|11|CE|Calmore|Calmore|Calmore|Calmore|
+943|10|CC TQ|City, Town Quay|City, Town Quay|||
+944|10|PW GH|Pwood Gen Hosp|Pwood Gen Hosp|||
+945|11|SOU|Southampton|Southampton|||
+946|11|BS|Botley Square|Botley Square|Botley Square|Botley Square|
+947|11|HO|Hedge End|Hedge End|Hedge End|Hedge End|
+948|11|Hmb|Hamble|Hamble|Hamble|Hamble|
+949|11|Oak|Oaklands Estate|Oaklands Estate|Oaklands Estate|Oaklands Estate|
+950|11|BGRN|Bassett Green|Bassett Green|Bassett Green|Bassett Green|
+951|11|WL|Wessex  Lane|Wessex  Lane|Wessex  Lane|Wessex  Lane|
+952|11|6D|Six Dials|Six Dials|Six Dials|Six Dials|
+953|11|TH|Thornhill|Thornhill|||
+954|11|LHN|Lordshill Nth|Lordshill Nth|Lordshill Nth|Lordshill Nth|
+955|11|MIL|Millbrook|Millbrook|Millbrook|Millbrook|
+956|9|CC HB|City, Hamble|City, Hamble|||
+957|9|CC LH|City, Lordshill|City, Lordshill|||
+958|9|CC WN|City, Weston|City, Weston|||
+959|9|WS HB|Weston, Hamble|Weston, Hamble|||
+960|10|GH|General Hosp|General Hosp|||
+961|10|PW TH|Pwood, Townhill|Pwood, Townhill|||
+962|10|TW|Townhill Park|Townhill Park|||
+963|11|Good|Totton|Totton|Totton|Totton|
+964|11|OV|Ocean Village|Ocean Village|||
+965|9|CA SC|Cantell Sch|Cantell Sch|Cantell Sch|Cantell Sch|
+966|9|C LH|City, Lordshill|City, Lordshill|||
+967|9|C MG|City, Moorgreen|City, Moorgreen|||
+968|9|C TH|City, Townhill|City, Townhill|||
+969|9|MRbt|Big Cheese|Big Cheese|||
+970|9|THP|Townhill Park|Townhill Park|||
+971|9|WL C|Woolston, City|Woolston, City|||
+972|9|BTT|Bitterne|Bitterne|||
+973|9|C SC|City, Sholing|City, Sholing|City, Sholing|City, Sholing|
+974|9|SH CM|Sholing Common|Sholing Common|Sholing Common|Sholing Common|
+975|10|LDN|London|London|London|London|
+976|10|PORT|Portsmouth|Portsmouth|Portsmouth|Portsmouth|
+977|10|SALS|Salisbury|Salisbury|Salisbury|Salisbury|
+978|10|SOTN|Southampton|Southampton|Southampton|Southampton|
+979|12|SOU|Southampton|Southampton|||
+980|12|HOSP|General Hosp|General Hosp|||
+981|12|WIN|Winchester|Winchester|||
+982|11|HY|Hythe|Hythe|Hythe|Hythe|
+983|11|C StG|City, St George|City, St George|City, St George|City, St George|
+984|11|StG|St Georges Sch|St Georges Sch|St Georges Sch|St Georges Sch|
+985|11|CC HG|City, Hedge End|City, Hedge End|City, Hedge End|City, Hedge End|
+986|11|CC MB|City, Millbrook|City, Millbrook|||
+987|11|CC TH|City, Thornhill|City, Thornhill|||
+988|11|CC TES|City, Lowford|City, Lowford|City, Lowford|City, Lowford|
+989|11|TES|Lowford|Lowford|Lowford|Lowford|
+990|13|CC|City Centre|City Centre|||
+991|13|GOS|Gosport|Gosport|||
+992|13|LOC|Locks Heath|Locks Heath|||
+993|13|STUB|Stubbington|Stubbington|||
+994|13|FAR|Fareham|Fareham|||
+995|13|SG|Sarisbury Green|Sarisbury Green|||
+996|9|CC B|Bevois V, City|Bevois V, City|||
+997|9|CC L|Lodge Rd, City|Lodge Rd, City|Lodge Rd, City|Lodge Rd, City|
+998|9|SC|Sholing Common|Sholing Common|||
+999|9|C T|City, Totton|City, Totton|City, Totton|City, Totton|
+1000|9|C U|City, Uni|City, Uni|City, Uni|City, Uni|
+1001|9|C W|City, Weston|City, Weston|City, Weston|City, Weston|
+1002|9|LR C|Lodge Rd, City|Lodge Rd, City|Lodge Rd, City|Lodge Rd, City|
+1003|9|S T|Shirley, Totton|Shirley, Totton|Shirley, Totton|Shirley, Totton|
+1004|9|S W|Sholing, Weston|Sholing, Weston|Sholing, Weston|Sholing, Weston|
+1005|9|U|University|University|University|University|
+1006|9|U T|Uni, Totton|Uni, Totton|Uni, Totton|Uni, Totton|
+1007|9|W|Weston|Weston|Weston|Weston|
+1008|9|BV C|Bevois V, City|Bevois V, City|||
+1009|9|C GE|City, Glen Eyre|City, Glen Eyre|||
+1010|9|C SH|City, Sholing|City, Sholing|||
+1011|9|HF|Hillyfields|Hillyfields|||
+1012|9|NTH C|Northam, City|Northam, City|||
+1013|9|C HF|City, Harefield|City, Harefield|||
+1014|9|C TW|City, Thornhill|City, Thornhill|||
+1015|9|LHnth|Lordshill Nth|Lordshill Nth|Lordshill Nth|Lordshill Nth|
+1016|9|AP C|Airport, City|Airport, City|Airport, City|Airport, City|
+1017|9|BNE|Bitterne|Bitterne|||
+1018|9|PW C|Portswood, City|Portswood, City|Portswood, City|Portswood, City|
+1019|9|HMB|Hamble|Hamble|Hamble|Hamble|
+1020|9|NT HMB|Netley, Hamble|Netley, Hamble|Netley, Hamble|Netley, Hamble|
+1021|9|SHC|St Georges Sch|St Georges Sch|St Georges Sch|St Georges Sch|
+1022|9|CC RSH|City, RSH|City, RSH|||
+1023|9|BT SHP|Bitterne|Bitterne|||
+1024|9|MD|Midanbury|Midanbury|||
+1025|9|NT HB|Netley, Hamble|Netley, Hamble|||
+1026|9|SCH|Sholing Sch|Sholing Sch|Sholing Sch|Sholing Sch|
+1027|9|TW|Townhill Park|Townhill Park|Townhill Park|Townhill Park|
+1028|11|CC GEN|City, Gen Hosp|City, Gen Hosp|City, Gen Hosp|City, Gen Hosp|
+1029|11|GEN|General Hosp|General Hosp|General Hosp|General Hosp|
+1030|11|MB GEN|Millbrook, Hosp|Millbrook, Hosp|Millbrook, Hosp|Millbrook, Hosp|
+1031|11|TH HG|Th'nhill, H End|Th'nhill, H End|Th'nhill, H End|Th'nhill, H End|
+1032|11|BOT|Botley|Botley|||
+1033|11|StAn|City, St Annes|City, St Annes|City, St Annes|City, St Annes|
+1034|11|MAR|Marchwood|Marchwood|Marchwood|Marchwood|
+1035|11|StM|Sholing|Sholing|Sholing|Sholing|
+1036|11|Burs|Bursledon|Bursledon|Bursledon|Bursledon|
+1037|11|NET|Netley|Netley|Netley|Netley|
+1038|12|RSH|Loop - RSH Hosp|Loop - RSH Hosp|||
+1039|12|AB|Above Bar|Above Bar|Above Bar|Above Bar|
+1040|12|LD1|Central Station|Central Station|Central Station|Central Station|
+1041|12|LD2|Town Quay|Town Quay|Town Quay|Town Quay|
+1042|11|TOT|Totton|Totton|||
+1043|9|BG|Boorley Green|Boorley Green|Boorley Green|Boorley Green|
+1044|9|HG|Hedge End|Hedge End|||
+1045|9|SOU|Southampton|Southampton|Southampton|Southampton|
+1046|9|C HG|City, Hedge End|City, Hedge End|||
+1047|9|BOTLEY|Botley|Botley|||
+1048|11|StANN|St Annes|St Annes|St Annes|St Annes|
+1049|9|GE UNI|Glen Eyre, University|Glen Eyre, Universit|||
+1050|9|MA|Montague Ave.|Montague Ave.|||
+1051|9|UNI|University|University|||
+1052|11|Bot|Botley|Botley|||
+1053|11|WLSTN|Woolston|Woolston|Woolston|Woolston|
+1054|9|CC SH|City, Sholing|City, Sholing|||
+1055|9|SH|Sholing|Sholing|||
+1056|11|LH RW|Lyndhurst|Lyndhurst|Lyndhurst|Lyndhurst|
+1057|11|RW|Ringwood|Ringwood|Ringwood|Ringwood|
+1061|9|7SH|Butts Rd|Butts Rd|||
+1062|9|F4TT|Totton|Totton|||
+1063|9|F4CC|City Centre|City Centre|||
+1064|9|F4MB|Millbrook Rbt|Millbrook Rbt|||
+1065|9|F5LHC|Lordshill Cent|Lordshill Cent|||
+1066|9|F5LHN|Lordshill North|Lordshill North|||
+1067|9|F5CC|City Centre|City Centre|||
+1068|9|F7SW|Swaythling|Swaythling|||
+1069|9|F7MB|Market Bldgs|Market Bldgs|||
+1070|9|SH CC|Sholing, City|Sholing, City|||
+1071|9|F12AMA|Sholing Mont Av|Sholing Mont Av|||
+1072|9|F13SHB|Sholing Butts|Sholing Butts|||
+1073|9|F16NT HMB|Netley, Hamble|Netley, Hamble|||
+1074|9|F16HMB|Hamble|Hamble|||
+1075|9|F16SHC|St Georges Sch|St Georges Sch|||
+1076|9|F16WH|Wrights Hill|Wrights Hill|||
+1077|9|F16SG|Sholing School|Sholing School|||
+1078|9|F16HG|Hedge End|Hedge End|||
+1079|9|F16EB|Eastleigh|Eastleigh|||
+1080|9|F16HMB HG|Hamble, Hdg End|Hamble, Hdg End|||
+1081|9|F16HMB EB|Hamble, Eastlgh|Hamble, Eastlgh|||
+1082|9|F21LHN|Lordshill North|Lordshill North|||
+1083|9|F21NSLG|L Hill Nursling|L Hill Nursling|||
+1084|11|BS3SA|St Anne's Sch|St Anne's Sch|||
+1085|11|BS15W|Weston|Weston|||
+1086|11|BS15KC|Kipling Court|Kipling Court|||
+1087|11|BS15KA|Kingsclere Ave|Kingsclere Ave|||
+1088|11|BS15BT|Bitterne|Bitterne|||
+1089|11|HGO|H End Oaklands|H End Oaklands|||
+1090|11|BVBSOU|Southampton|Southampton|||
+1091|11|BVBEAST|Eastleigh|Eastleigh|||
+1092|11|BVBCC|City Centre|City Centre|||
+1093|11|611WN|Woolston|Woolston|||
+1094|11|611BP|Barton Peveril|Barton Peveril|||
+1095|11|612WN|Woolston|Woolston|||
+1096|11|612BP|Barton Peveril|Barton Peveril|||
+1097|11|SBLBSOU|Southampton|Southampton|||
+1098|11|SBLBEAST|Eastleigh|Eastleigh|||
+1099|11|SBLBCC|City Centre|City Centre|||
+1100|11|SBLBBV|Bosville|Bosville|||
+1101|11|SBLBVM|Velmore|Velmore|||
+1102|10|LW|Leisure World|Leisure World|||
+1103|10|CC DG4|City DG4|City DG4|||
+1104|10|DG4 LW|Gte 4, L World|Gte 4, L World|||
+1105|10|OV|Ocean Village|Ocean Village|||
+1106|10|CC OV|City, Ocean V.|City, Ocean V.|||
+1107|10|ALD|Aldermoor|Aldermoor|||
+1108|11|N6PWUN|Portswood, Univ|Portswood, Univ|||
+1109|11|N6PWCC|Portswood, City|Portswood, City|||
+1110|11|N6LW|Leisure World|Leisure World|||
+1111|11|LKRY|Central Station|Central Station|||
+1112|11|LKTQ|Town Quay|Town Quay|||
+1113|11|MW|Marchwood|Marchwood|||
+1114|11|MWFS|M'wood, Fawley|M'wood, Fawley|||
+1115|11|MWCB|M'wood, Calshot|M'wood, Calshot|||
+1116|11|NM|Netley Marsh|Netley Marsh|||
+1117|11|HE|Hedge End|Hedge End|||
+1118|12|RS|Romsey School|Romsey School|||
+1119|12|SH|Shirley|Shirley|||
+1120|12|HF|Highfield|Highfield|||
+1122|12|C-CTY|Loop - City|Loop - City|||
+1123|12|WC|Waltham Chase|Waltham Chase|||
+1124|12|SW|Swanmore|Swanmore|||
+1125|12|BW|Bishops Waltham|Bishops Waltham|||
+1126|12|HH|Horton Heath|Horton Heath|||
+1127|13|LEE|Lee on Solent|Lee on Solent|||
+1128|14|EB|Eastleigh|Eastleigh|||
+1129|14|HG|Hedge End|Hedge End|||
+1130|14|Bot|Botley|Botley|||
+1131|14|HGO|H End Oaklands|H End Oaklands|||
+1132|10|PW|Portswood|Portswood|||
+1133|9|BC|Big Cheese|Big Cheese|||
+1134|9|BTS|Bitterne Shops|Bitterne Shops|||
+1135|14|BVBSOU|Southampton|Southampton|||
+1136|14|BVBEAST|Eastleigh|Eastleigh|||
+1137|14|BVBCC|City Centre|City Centre|||
+1138|14|611WN|Woolston|Woolston|||
+1139|14|611BP|Barton Peveril|Barton Peveril|||
+1140|12|LH RW|Lyndhurst|Lyndhurst|||
+1141|9|F10CHAF|City, Harefield|City, Harefield|||
+1142|9|F10HAF|Harefield|Harefield|||
+1143|9|F9HAF|Harefield|Harefield|||
+1144|9|F21HF|Hillyfields|Hillyfields|||
+1145|9|F7SG CC|St G Sch, City|St G Sch, City|||
+1146|10|U1PARK|Airport|Airport|||
+1147|10|U1CC TQ|City, Town Quay|City, Town Quay|||
+1148|10|U1DG4|Dock Gate 4|Dock Gate 4|||
+1149|10|U1EAST|Eastleigh|Eastleigh|||
+1150|10|U1CRS|Central Station|Central Station|||
+1151|10|DG4 NOC|D Gate 4, NOC|D Gate 4, NOC|||
+1152|14|612BP|Barton Peveril|Barton Peveril|||
+1153|14|612WN|Weston|Weston|||
+1154|9|F7BG|Bassett Green|Bassett Green|||
+1155|9|F7PW|Portswood|Portswood|||
+1156|9|F7PWCC|Portswood, City|Portswood, City|||
+1157|9|F7PWMW|Pwood & Tesco|Pwood & Tesco|||
+1158|11|HB|Hamble|Hamble|||
+1159|11|NT HB|Netley, Hamble|Netley, Hamble|||
+1160|11|BOTLEY|Botley|Botley|||
+1161|9|F7MWT|Tesco Millbr'k|Tesco Millbr'k|||
+1162|9|AW|Aldermoor Wdm|Aldermoor Wdm|||
+1163|13|SA CC|St A City Cent|St A City Cent|||
+1164|14|BG|Boorley Green|Boorley Green|||
+1165|1|LH| | |||
+1166|10|WESS|Wessex Lane|Wessex Lane|||
+1167|10|LW WESS|LW  Wessex Ln|LW  Wessex Ln|||
+1168|9|CC PW|City Townhill|City Townhill|||
+1169|9|CC TP|City Centre|City Centre|||
+1170|10|TW WH|Townhill W Hill|Townhill W Hill|||
+1171|10|WH|Witt's Hill|Witt's Hill|||
+1172|10|PW WH|Pwood, Wit Hill|Pwood, Wit Hill|||
+1173|14|SH|Shirley|Shirley|||
+1174|14|CC|City Centre|City Centre|||
+1175|11|BNE|Bitterne|Bitterne|||
+1176|9|F4SH|Shirley|Shirley|||
+1177|9|F4AL|Aldermoor|Aldermoor|||
+1178|9|F4TE|Tesco Millbr'k|Tesco Millbr'k|||
+1179|14|SOV|Sovereign Dr|Sovereign Dr|||
+1180|11|LHC|Lordshill Centre|Lordshill Centre|||
+1181|11|Shirl|Shirley|Shirley|||
+1182|9|P C|Peartree, City|Peartree, City|||
+1183|9|M C|Merry Oak, City|Merry Oak, City|||
+1184|14|FAR|Fareham|Fareham|||
+1185|14|SG|Sarisbury Green|Sarisbury Green|||
+1186|14|Tesco|Tesco Millbr'k|Tesco Millbr'k|||
+1187|14|CC NTH|City, Northam|City, Northam|||
+1188|14|NTH|Northam|Northam|||
+1189|9|F7PWGH|Pwood Gen Hosp|Pwood Gen Hosp|||
+1190|9|F7GH|General Hospital|General Hospital|||
+1191|14|LKRY|Central Station|Central Station|||
+1192|14|LKTQ|Town Quay|Town Quay|||
+1193|10|WN|Weston|Weston|||
+1194|10|WS HB|Weston, Hamble|Weston, Hamble|||
+1195|10|HB|Hamble|Hamble|||
+1196|10|CC B|Bevois V, City|Bevois V, City|||
+1197|10|F4TT|Totton|Totton|||
+1198|10|F4CC|City Centre|City Centre|||
+1199|10|F4SH|Shirley|Shirley|||
+1200|10|F4AL|Aldermoor|Aldermoor|||
+1201|10|F4TE|Tesco Millbr'k|Tesco Millbr'k|||
+1202|10|F5LHC|Lordshill Cent|Lordshill Cent|||
+1203|10|F5LHN|Lordshill North|Lordshill North|||
+1204|10|F5CC|City Centre|City Centre|||
+1205|10|F7BG|Bassett Green|Bassett Green|||
+1206|10|F7MB|Market Bldgs|Market Bldgs|||
+1207|10|F7SG CC|St G Sch, City|St G Sch, City|||
+1208|10|F7PWCC|Portswood, City|Portswood, City|||
+1209|10|F7PWMW|Pwood & Tesco|Pwood & Tesco|||
+1210|10|F7PWGH|Pwood Gen Hosp|Pwood Gen Hosp|||
+1211|10|F7MWT|Tesco Millbr'k|Tesco Millbr'k|||
+1212|10|F7GH|General Hospital|General Hospital|||
+1213|10|C TH|City, Townhill|City, Townhill|||
+1214|10|THP|Townhill Park|Townhill Park|||
+1215|10|C LH|City, Lordshill|City, Lordshill|||
+1216|10|LH|Lordshill|Lordshill|||
+1217|10|BTS|Bitterne Shops|Bitterne Shops|||
+1220|10|NTH C|Northam, City|Northam, City|||
+1221|10|F9HAF|Harefield|Harefield|||
+1222|10|C TW|City, Thornhill|City, Thornhill|||
+1223|10|TH|Thornhill|Thornhill|||
+1224|10|CC SH|City, Sholing|City, Sholing|||
+1225|10|SH|Sholing|Sholing|||
+1226|10|SH CC|Sholing, City|Sholing, City|||
+1227|10|BTT|Bitterne|Bitterne|||
+1228|10|BB|Butts Road|Butts Road|||
+1229|10|F12AMA|Sholing Mont Av|Sholing Mont Av|||
+1230|10|F13SHB|Sholing Butts|Sholing Butts|||
+1218|10|P C|Peartree, City|Peartree, City|||
+1219|10|HG|Hedge End|Hedge End|||
+1231|10|F16HMB|Hamble|Hamble|||
+1232|11|LYM|Lymington|Lymington|||
+1233|11|TT|Totton|Totton|||
+1234|11|HT,SH|H town, Sholing|H town, Sholing|||
+1235|15|LKRY|Central Station|Central Station|||
+1236|15|LKTQ|Town Quay|Town Quay|||
+1237|9|F10C TH|City, Thornhill|City, Thornhill|||
+1238|9|F10C HF|City, Haref'ld|City, Haref'ld|||
+1239|9|F10HF|Harefield|Harefield|||
+1240|9|F11MA|Sholing Mont Av|Sholing Mont Av|||
+1241|9|F12MA|Sholing Mont Av|Sholing Mont Av|||
+1242|9|F12BR|Sholing Butts|Sholing Butts|||
+1243|9|ADP|Adanac Park|Adanac Park|||
+1244|9|F21LHC|Lordshill C|Lordshill C|||
+1245|12|East|Eastleigh|Eastleigh|||
+1246|12|RW FB|Ringwd F'bridge|Ringwd F'bridge|||
+1247|12|FB|F'bridge|F'bridge|||
+1248|11|CAN|Cantell School|Cantell School|||
+1249|11|TTC|Totton Coll|Totton Coll|||
+1250|11|ROM|Romsey|Romsey|||
+1251|11|SOUT|Southampton|Southampton|||
+1253|11|BISH|Bishoptsoke|Bishoptsoke|||
+1254|9|HG BOT|H End, Botley|H End, Botley|||
+1255|9|BOT|Botley|Botley|||
+1256|11|GE|Glen Eyre|Glen Eyre|||
+1257|11|SALS|Salisbury|Salisbury|||
+1258|19|17.1|Tilehurst Bear Inn|Tilehurst Bear Inn|||
+1259|19|17.2|Central Reading|Central Reading|||
+1260|19|17.3|Wokingham Rd Three Tuns|Wokingham Rd Three T|||
+1261|19|999|Not in Service|Not in Service|||

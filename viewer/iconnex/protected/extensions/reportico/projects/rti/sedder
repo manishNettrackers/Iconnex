@@ -1,0 +1,34 @@
+for i in `grep -l "/demo/iconnex/protected/extensions/reportico/" *xml`
+do
+	echo $i
+	sed "s+/demo/iconnex/protected/extensions/reportico/+'.SW_HTTP_REPORTS_BASEDIR.'+g" $i > $i.new
+	mv $i.new $i
+done
+
+for i in `grep -l "/yii/iconnex/protected/extensions/reportico/" *xml`
+do
+	echo $i
+	sed "s+/yii/iconnex/protected/extensions/reportico/+'.SW_HTTP_REPORTS_BASEDIR.'+g" $i > $i.new
+	mv $i.new $i
+done
+
+for i in `grep -l "/demo/iconnex/assets/" *xml`
+do
+	echo $i
+	sed "s+/demo/iconnex/assets/+'.SW_HTTP_ASSETS_DIR.'+g" $i > $i.new
+	mv $i.new $i
+done
+
+for i in `grep -l "/yii/iconnex/assets/" *xml`
+do
+	echo $i
+	sed "s+/yii/iconnex/assets/+'.SW_HTTP_ASSETS_DIR.'+g" $i > $i.new
+	mv $i.new $i
+done
+
+for i in `grep -l "/demo/iconnex/" *xml`
+do
+	echo $i
+	sed "s+/demo/iconnex/+'.SW_HTT_APP_DIR.'+g" $i > $i.new
+	mv $i.new $i
+done

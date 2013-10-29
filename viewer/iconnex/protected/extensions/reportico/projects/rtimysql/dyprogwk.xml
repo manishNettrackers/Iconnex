@@ -1,0 +1,133 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>Daily Progress By Running Board</ReportTitle><ReportDescription>The &lt;b&gt;Daily Progress By Running Board&lt;/b&gt; report shows for each running board on a day the number of scheduled stops arrivals compared with the actual observations seen. 
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+The report is best operated by selection of route and service code.
+&lt;P&gt;&lt;HR&gt;&lt;P&gt;
+Select the type of Output and Level of Detail required and &lt;B&gt;Execute&lt;/B&gt;&lt;P&gt;</ReportDescription><PageSize>A4</PageSize><PageOrientation>Portrait</PageOrientation><TopMargin></TopMargin><BottomMargin></BottomMargin><RightMargin></RightMargin><LeftMargin></LeftMargin><pdfFont></pdfFont><pdfFontSize></pdfFontSize><PreExecuteCode>$dfrom = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE1&quot;);
+$dto = $_criteria[&quot;date&quot;]-&gt;get_criteria_value(&quot;RANGE2&quot;);
+
+$dfdy = substr($dfrom, 1,2);
+$dfmn = substr($dfrom, 4,2);
+$dfyr = substr($dfrom, 7,4);
+$dtdy = substr($dto, 1,2);
+$dtmn = substr($dto, 4,2);
+$dtyr = substr($dto, 7,4);
+
+$ifrom = mktime ( 0, 0, 0, $dfmn, $dfdy, $dfyr );
+$ito = mktime ( 0, 0, 0, $dtmn, $dtdy, $dtyr );
+
+
+//echo &quot;&lt;BR&gt;Fr  $dfdy $dfmn $dfyr &lt;BR&gt;&quot;;
+//echo &quot;&lt;BR&gt;To  $dtdy $dtmn $dtyr &lt;BR&gt;&quot;;
+
+$sql = &quot;CREATE TEMP TABLE t_days ( day date );&quot;;
+//echo $sql.&quot;&lt;BR&gt;&quot;;
+
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+$ptr = $ifrom;
+while ( $ptr &lt;= $ito )
+{
+    $dt = strftime ( &quot;%d/%m/%Y&quot;, $ptr );
+
+    $sql = &quot;INSERT INTO t_days VALUES ( '&quot;.$dt.&quot;' );&quot;;
+//echo $sql.&quot;&lt;BR&gt;&quot;;
+    $ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+    $ptr = $ptr + ( 24 * 60 * 60 );
+}
+
+
+
+//echo &quot;&lt;BR&gt;&lt;BR&gt;From...$dfdy, $dfmn, $dfyr&lt;BR&gt;&lt;BR&gt;&quot;;
+
+
+$sql = &quot;SELECT t_days.day day, service.service_id, count(*) trip_total
+FROM operator,cent_user,route_for_user route,service,service_patt, t_days
+WHERE 1 = 1
+AND (
+operator.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER
+AND operator.operator_id = route.operator_id
+AND route.route_id = service.route_id
+AND service_patt.service_id = service.service_id
+and t_days.day between wef_date and wet_date&quot;;
+
+$rtval = $_criteria[&quot;route&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$opval = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+if ( $rtval )
+    $sql .= &quot; and route.route_id IN (&quot;. $rtval. &quot;) &quot;;
+if ( $opval )
+    $sql .= &quot; and operator.operator_id IN (&quot;. $opval. &quot;) &quot;;
+
+$sql .= &quot; group by 1, 2 into temp t_summary; &quot;;
+//echo $sql.&quot;&lt;BR&gt;&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+
+$sql = &quot;
+SELECT route.route_id, operator.operator_id, t_days.day,
+ publish_tt.pub_ttb_id, archive_rt.schedule_id, archive_rt.vehicle_id,
+ count(*) tripct
+ FROM operator,route_for_user route,service, t_days, 
+      publish_tt,event_pattern,event,
+      outer (archive_rt,archive_rt_loc,vehicle ),
+      outer t_summary 
+  WHERE 1 = 1
+  AND operator.operator_id = route.operator_id
+  AND route.route_id = service.route_id
+  AND publish_tt.service_id = service.service_id
+  AND publish_tt.evprf_id   = event_pattern.evprf_id
+  and event_pattern.event_id   = event.event_id
+  and publish_tt.pub_ttb_id = archive_rt.pub_ttb_id
+  and archive_rt.schedule_id = archive_rt_loc.schedule_id
+  and vehicle.vehicle_id = archive_rt.vehicle_id
+  and actual_est = 'A'
+  and t_summary.service_id = service.service_id
+  and t_days.day between service.wef_date and service.wet_date
+  and t_summary.day = t_days.day
+  and weekday(t_days.day) between rpdy_start and rpdy_end
+  and date(actual_start) =  t_days.day 
+&quot;;
+
+if ( $rtval )
+    $sql .= &quot; and route.route_id IN (&quot;. $rtval. &quot;) &quot;;
+
+if ( $opval )
+    $sql .= &quot; and operator.operator_id IN (&quot;. $opval. &quot;) &quot;;
+
+$sql .= &quot; GROUP BY 1, 2, 3, 4,5, 6&quot;;
+$sql .= &quot; INTO TEMP t_trips&quot;;
+//echo $sql.&quot;&lt;BR&gt;&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();
+
+
+
+$sql = &quot;UPDATE t_trips SET tripct = 0 WHERE tripct = 1&quot;;
+//echo $sql.&quot;&lt;BR&gt;&quot;;
+$ds-&gt;Execute($sql) or print $ds-&gt;ErrorMsg();</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName>centurion</DatabaseName><HostName>centlive_tcp</HostName><ServiceName>?Unknown?</ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>t_trips,operator,cent_user,route,service, publish_tt,event_pattern,event, outer vehicle, outer t_summary</TableSql><WhereSql> 
+AND (
+operator.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER 
+AND operator.operator_id = route.operator_id
+AND route.route_id = service.route_id
+AND publish_tt.service_id = service.service_id
+and publish_tt.evprf_id   = event_pattern.evprf_id
+and event_pattern.event_id   = event.event_id
+and publish_tt.pub_ttb_id = t_trips.pub_ttb_id
+and vehicle.vehicle_id = t_trips.vehicle_id
+and t_summary.service_id = service.service_id
+and t_trips.day between service.wef_date and service.wet_date
+and t_summary.day = t_trips.day
+and weekday(t_trips.day) between rpdy_start and rpdy_end</WhereSql><GroupSql>GROUP BY 1, 2, 3,4, 6,8</GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Route Code</column_title><tooltip></tooltip><group_header_label>Route Code</group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Operator</column_title><tooltip></tooltip><group_header_label>Operator </group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Route Name</column_title><tooltip></tooltip><group_header_label>Route Name</group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>event_code</Name><TableName>event</TableName><ColumnName>event_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Day Type</column_title><tooltip></tooltip><group_header_label>Event Code</group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>tripct</Name><TableName></TableName><ColumnName>sum(tripct)</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Observations</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>day</Name><TableName>t_trips</TableName><ColumnName>day</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Date</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>trip_total</Name><TableName></TableName><ColumnName>sum(trip_total)</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Total Expected</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>runningno</Name><TableName></TableName><ColumnName>runningno</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title>Running Board</column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>drill</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>operator_code</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>route_code</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>day</Name><OrderType>ASC</OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments><Assignment><AssignName>tripct</AssignName><Expression>' '</Expression><Condition>{tripct} &lt;= 1</Condition></Assignment><Assignment><AssignName>full</AssignName><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment><Assignment><AssignName>full</AssignName><Expression>{route_code}.'/'.{description}</Expression><Condition></Condition></Assignment><Assignment><AssignName>full</AssignName><Expression>{route_code}.'/'.{service_code}.'/'.{description}</Expression><Condition></Condition></Assignment><Assignment><AssignName>drill</AssignName><Expression>'&lt;a target=&quot;_blank&quot; href=&quot;'.SW_HTTP_BASEDIR.'runedit.php?xmlin=arcrte.xml&amp;execute_mode=EXECUTE&amp;target_format=HTML&amp;target_show_body=1&amp;project='.SW_PROJECT.'&amp;MANUAL_route='.{route_code}.'&amp;MANUAL_runningno='.{runningno}.'&amp;MANUAL_daterange_FROMDATE='.substr({day},6,4).&quot;-&quot;.substr({day},3,2).&quot;-&quot;.substr({day},0,2).'&amp;MANUAL_daterange_TODATE='.substr({day},6,4).&quot;-&quot;.substr({day},3,2).&quot;-&quot;.substr({day},0,2).'&quot;&gt;Drill&lt;/a&gt;'</Expression><Condition></Condition></Assignment></Assignments><Criteria><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName>operator.operator_id</QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>legal_name</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator</TableSql><WhereSql>
+AND
+operator.operator_id IN
+( SELECT route_for_user.operator_id FROM route_for_user )</WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>operator_code</Name><OrderType>ASC</OrderType></OrderColumn></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{operator_code}.&quot;/&quot;.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>route</Name><Title>Route</Title><QueryTableName></QueryTableName><QueryColumnName>route.route_id</QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>route_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>route_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route_for_user route</TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>route_id</Name><TableName>route</TableName><ColumnName>route_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>route</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name></Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>route_code</Name><OrderType>ASC</OrderType></OrderColumn></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{route_code}.&quot;/&quot;.{description}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks><CriteriaLink><LinkFrom>route</LinkFrom><LinkTo>operator</LinkTo><LinkClause>route.operator_id</LinkClause></CriteriaLink></CriteriaLinks></CriteriaItem><CriteriaItem><Name>service</Name><Title>Service</Title><QueryTableName></QueryTableName><QueryColumnName>service.service_id</QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>service_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>service_code</OverviewColumn><MatchColumn>description</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>route,cent_user,service</TableSql><WhereSql>  
+AND TODAY between wef_date AND wet_date
+AND (
+route.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER
+AND route.route_id = service.route_id  </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>service_id</Name><TableName>service</TableName><ColumnName>service_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>route_code</Name><TableName>route</TableName><ColumnName>route_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>service_code</Name><TableName>service</TableName><ColumnName>service_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>description</Name><TableName>service</TableName><ColumnName>description</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{route_code}.&quot;/&quot;.{service_code}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>date</Name><Title>Date</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>DATERANGE</CriteriaType><CriteriaDisplay>DMYFORM</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders><PageHeader><LineNumber>1</LineNumber><HeaderText>{title}</HeaderText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>center</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageHeader></PageHeaders><PageFooters><PageFooter><LineNumber>1</LineNumber><FooterText>Page: {page}</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>right</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter><PageFooter><LineNumber>1</LineNumber><FooterText>Centurion RTPI</FooterText><Format><ColumnStartPDF>5%</ColumnStartPDF><justify>left</justify><ColumnWidthPDF>90%</ColumnWidthPDF></Format></PageFooter></PageFooters><DisplayOrders><DisplayOrder><ColumnName>operator_code</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>route_code</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>description</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>runningno</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>trip_total</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>event_code</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>tripct</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>day</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>drill</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder></DisplayOrders><Groups><Group><GroupName>day</GroupName><BeforeGroupHeader>blankline</BeforeGroupHeader><AfterGroupHeader>blankline</AfterGroupHeader><BeforeGroupTrailer>blankline</BeforeGroupTrailer><AfterGroupTrailer>blankline</AfterGroupTrailer><GroupHeaders><GroupHeader><GroupHeaderColumn>route_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>operator_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>description</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>day</GroupHeaderColumn></GroupHeader></GroupHeaders><GroupTrailers></GroupTrailers></Group></Groups><Graphs><Graph><GraphColumn>day</GraphColumn><GraphColor></GraphColor><Title>Route Progress</Title><GraphWidth>500</GraphWidth><GraphHeight>300</GraphHeight><GraphWidthPDF></GraphWidthPDF><GraphHeightPDF></GraphHeightPDF><XTitle>Journeys</XTitle><YTitle>Stops</YTitle><GridPosition>back</GridPosition><XGridDisplay>major</XGridDisplay><XGridColor>gray</XGridColor><YGridDisplay>none</YGridDisplay><YGridColor>gray</YGridColor><XLabelColumn>runningno</XLabelColumn><TitleFont>Font 1</TitleFont><TitleFontStyle>Normal</TitleFontStyle><TitleFontSize>12</TitleFontSize><TitleColor>black</TitleColor><XTitleFont>Font 1</XTitleFont><XTitleFontStyle>Normal</XTitleFontStyle><XTitleFontSize>12</XTitleFontSize><XTitleColor>black</XTitleColor><YTitleFont>Font 1</YTitleFont><YTitleFontStyle>Normal</YTitleFontStyle><YTitleFontSize>12</YTitleFontSize><YTitleColor>black</YTitleColor><XAxisColor>black</XAxisColor><XAxisFont>Font 1</XAxisFont><XAxisFontStyle>Normal</XAxisFontStyle><XAxisFontSize>8</XAxisFontSize><XAxisFontColor>black</XAxisFontColor><YAxisColor>black</YAxisColor><YAxisFont>Font 1</YAxisFont><YAxisFontStyle>Normal</YAxisFontStyle><YAxisFontSize>8</YAxisFontSize><YAxisFontColor>black</YAxisFontColor><XTickInterval>4</XTickInterval><YTickInterval>4</YTickInterval><XTickLabelInterval>2</XTickLabelInterval><YTickLabelInterval>2</YTickLabelInterval><MarginColor>white</MarginColor><MarginLeft>50</MarginLeft><MarginRight>50</MarginRight><MarginTop>20</MarginTop><MarginBottom>60</MarginBottom><Plots><Plot><PlotColumn>trip_total</PlotColumn><PlotType>BAR</PlotType><LineColor>black</LineColor><DataType>number</DataType><Legend></Legend><FillColor>cyan</FillColor></Plot><Plot><PlotColumn>tripct</PlotColumn><PlotType>BAR</PlotType><LineColor>yellow</LineColor><DataType>number</DataType><Legend></Legend><FillColor>yellow</FillColor></Plot></Plots></Graph></Graphs></Output></EntryForm></ReportQuery></Report>

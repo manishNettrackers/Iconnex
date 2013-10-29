@@ -1,0 +1,32 @@
+for i in `
+dbaccess centurion <<! 2> /dev/null | grep -v "usernm" | grep -v "^ *$"
+select usernm
+from cent_user
+!`
+do
+pwd=12$i
+if [ "$i" = "swise" ]; then
+	pwd=sw923
+fi
+if [ "$i" = "jhall" ]; then
+	pwd=jh432
+fi
+if [ "$i" = "mallen" ]; then
+	pwd=ma567
+fi
+if [ "$i" = "first" ]; then
+	pwd=12first
+fi
+if [ "$i" = "nandd" ]; then
+	pwd=12nd
+fi
+md5=`echo  -n $pwd | md5sum - | cut -d" " -f1`
+echo "$i = $md5"
+echo "dbaccess centurion <<!
+update cent_user set passwd_md5 = \"$md5\" where usernm = \"$i\"
+!
+" > b
+sh b
+
+done
+

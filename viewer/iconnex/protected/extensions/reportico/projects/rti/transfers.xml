@@ -1,0 +1,437 @@
+<?xml version="1.0"?><Report><ReportQuery><Format><ReportTitle>GPRS On Bus Diagnostics</ReportTitle><ReportDescription>&lt;h3&gt;This report provides two key functions :-&lt;/h3&gt;
+&lt;li&gt;Downloading and viewing of bus logs&lt;/li&gt;
+&lt;li&gt;Publication to vehicles over GPRS&lt;/li&gt;
+&lt;p&gt;
+&lt;h3&gt;To Download Log Files&lt;/h3&gt;
+Enter one or more vehicle codes you wish to download logs for, select the weekdays you are interested in, select the type of log (default is routelog) and press execute. You will be taken to the report output where you can monitor and wait for the downloads to happen
+&lt;p&gt;
+At this point the server will start downloading files from buses if they are visible over the GPRS network. To monitor the progress, keep pressing the &lt;b&gt;Refresh&lt;/b&gt; link at the top of the page.
+&lt;p&gt;
+As the downloads occur, refreshing this page shows links to the logs files as they are retrieved. Hold the Control key down and click one of these links to open up a new page with the contents of the log file
+&lt;h3&gt;To Publish to Vehicles (Almost finished)&lt;/h3&gt;
+Enter one or more vehicle codes you wish to publish to, choose Full Publication or Timetable Publication and press Execute. On entry to the report output which shows the upload status, keep pressing hte &lt;b&gt;Refresh&lt;b&gt; link to monitor the publication activity</ReportDescription><PageSize>A4</PageSize><PageOrientation>Portrait</PageOrientation><TopMargin>1%</TopMargin><BottomMargin>1%</BottomMargin><RightMargin>5%</RightMargin><LeftMargin>5%</LeftMargin><pdfFont>Helvetica</pdfFont><pdfFontSize>8.0</pdfFontSize><PreExecuteCode>$rm = $_criteria[&quot;runmode&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$rm = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $rm);
+if ( $rm == 2 )
+   actionTransfers($_criteria, $ds);
+
+   monitorTransfers($_criteria, $ds);
+
+
+function monitorTransfers($_criteria, $ds)
+{
+$basedir = $_criteria[&quot;transferdir&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$basedir = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $basedir);
+
+$cop = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$cvh = $_criteria[&quot;vehicle&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+$conn_id = $ds;
+
+$sql = 
+&quot;CREATE TEMP TABLE t_progress 
+(
+id serial,
+pub_id INTEGER,
+timestamp  char(20),
+build char(20),
+ip_address char(20),
+activity char(20),
+dummy char(20),
+srcfilename char(20),
+dstfilename char(20),
+result char(10),
+transsize integer,
+transtime integer,
+basepath char(100)
+) WITH NO LOG&quot;;
+$rid = executePDOQuery($sql, $conn_id );
+
+
+$addresses = $basedir.&quot;/export/address.conf&quot;;
+if ( !file_exists ( $addresses  ) )
+{
+   trigger_error (&quot;Address File $addresses does not exist&quot;);
+   return;
+}
+
+/*
+$sql = 
+&quot;SELECT 
+build_code
+FROM operator,vehicle, unit_build
+WHERE 1 = 1 
+AND operator.operator_id = vehicle.operator_id
+AND vehicle.build_id = unit_build.build_id
+&quot;;
+
+if ( $cvh )$sql .= &quot; AND vehicle.vehicle_id IN ($cvh)&quot;;
+if ( $cop )$sql .= &quot; AND operator.operator_id IN ($cop)&quot;;
+
+//$sql = $sql.&quot; INTO TEMP t_veh WITH NO LOG&quot;;
+//echo $sql.&quot;&lt;BR&gt;&quot;;
+
+
+//if ( !$_connection-&gt;Execute($sql) )
+//{
+//    print $_connection-&gt;ErrorMsg();
+//    return;
+//}
+
+//$sql = &quot;SELECT build_code FROM t_veh&quot;;
+
+
+$rid = executePDOQuery($sql, $conn_id );
+*/
+
+if ( !file_exists ( $basedir  ) )
+{
+   trigger_error (&quot;Transfer Area $basedir does not exist&quot;);
+   return;
+}
+
+if ( !is_writeable ( $basedir  ) )
+{
+    trigger_error (&quot;Transfer area $basedir is not writeable - cannot write transfer instructions&quot;);
+    return;
+}
+
+$impdir = $basedir.&quot;/import&quot;;
+$expdir = $basedir.&quot;/export&quot;;
+
+if ( !file_exists ( $impdir  ) )
+{
+       if ( !mkdir ( $impdir ) )
+       {
+           trigger_error (&quot;Failed to create import area $impdir&quot;);
+           return;
+       }
+}
+
+
+$addresses = $basedir.&quot;/export/address.conf&quot;;
+if ( !file_exists ( $addresses  ) )
+{
+   trigger_error (&quot;Address File $addresses does not exist&quot;);
+   return;
+}
+
+$addtxt = file_get_contents( $addresses );
+
+$handle1 = fopen($addresses, &quot;r&quot;);
+if ($handle1) {
+
+   while (($ln = fgets($handle1, 4096)) !== false) 
+   {
+       $elements = explode(&quot; &quot;, $ln);
+       $build = $elements[0];
+    
+       $prog_dir = $basedir.&quot;/import/$build&quot;;
+
+       if ( !file_exists ( $prog_dir  ) )
+       {
+           if ( !mkdir ( $prog_dir ) )
+           {
+           trigger_error (&quot;Failed to create build transfer directory $proj_dir&quot;);
+           return;
+           }
+       }
+
+        $transferprog = $basedir.&quot;/import/$build/proglog&quot;;
+       if ( file_exists ( $transferprog ) )
+       {
+           $handle = fopen($transferprog, &quot;r&quot;);
+           if ($handle) {
+           while (($prog = fgets($handle, 4096)) !== false) {
+               $progress = explode(&quot;,&quot;, $prog);
+               $id = 0;
+               $pub_id = $progress[0];
+               $timestamp = &quot;'$progress[1]'&quot;;
+               $build_id = &quot;'$progress[2]'&quot;;
+               $ip_address = &quot;'$progress[3]'&quot;;
+               $activity = &quot;'$progress[4]'&quot;;
+               $dummy = &quot;'$progress[5]'&quot;;
+               $srcfilename = &quot;'$progress[6]'&quot;;
+               $dstfilename = &quot;'$progress[7]'&quot;;
+               $result = &quot;'$progress[8]'&quot;;
+               $transsize = $progress[9];
+               $transtime = $progress[10];
+        
+               $sql = 
+                 &quot;INSERT INTO t_progress VALUES (
+                    $id, $pub_id,$timestamp,
+                    $build_id,$ip_address,$activity,
+                    $dummy,$srcfilename,$dstfilename,
+                    $result,$transsize,$transtime, '$basedir'
+                )&quot;;
+    
+               if ( $progress[1] )
+                   $rid1 = executePDOQuery($sql, $conn_id );
+            }
+            if (!feof($handle)) {
+                 echo &quot;Error: unexpected fgets() failn&quot;;
+            }
+            fclose($handle);
+        }
+       }
+
+$dow = date(&quot;w&quot;) + 1;
+$receiptlog=&quot;/opt/centurion/live/operators/global/logs/receipt.0$dow&quot;;
+           $handle = fopen($receiptlog, &quot;r&quot;);
+           if ($handle) {
+           while (($prog = fgets($handle, 4096)) !== false) {
+               $line = preg_replace(&quot;/([^ ]*) ([^ ]*): ([0-9]*).*([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9])(.*)/&quot;,&quot;$1 $2,$3,$4,$5&quot;, $prog);
+               $progress = explode(&quot;,&quot;, $line);
+               $timestamp = &quot;'$progress[0]'&quot;;
+               if ( count($progress) &lt; 3 )
+                  continue;
+               $msg = $progress[1];
+               $msgi = &quot;'$progress[1]'&quot;;
+               $pbd = $progress[2];
+               $pbdi = &quot;'$progress[2]'&quot;;
+
+               //var_dump($progress);
+               if ( $pbd == $build &amp;&amp; ( $msg == &quot;909&quot; || $msg == &quot;910&quot; || $msg == &quot;908&quot; ) )
+               {
+               if ( $msg == &quot;910&quot; ) $msgi = &quot;'BUS TIDY START'&quot;;
+               if ( $msg == &quot;909&quot; ) $msgi = &quot;'BUS TIDY COMPLETE'&quot;;
+               if ( $msg == &quot;908&quot; ) $msgi = &quot;'BUS TIDY FAIL'&quot;;
+               $dti = &quot;20&quot;. substr($timestamp,7,2).&quot;-&quot;.
+                    substr($timestamp,4,2).&quot;-&quot;.
+                    substr($timestamp,1,2).&quot; &quot;.
+                    substr($timestamp,10,8);
+               $dti = &quot;'$dti'&quot;;
+               $sql =
+                 &quot;INSERT INTO t_progress VALUES (
+                    $id, $pub_id,$dti,
+                    $pbdi,$ip_address,$msgi,
+                    '','','',
+                    NULL,NULL,NULL, '$basedir'
+                        )&quot;;
+//echo $sql;
+                   $rid1 = executePDOQuery($sql, $conn_id );
+                }
+            }
+            if (!feof($handle)) {
+                 echo &quot;Error: unexpected fgets() failn&quot;;
+            }
+            fclose($handle);
+        }
+
+
+
+
+   //$row = fetchPDO ($rid, &quot;NEXT&quot;);
+    }
+
+}
+}
+
+
+
+function actionTransfers($_criteria, $ds)
+{
+$pn = $_criteria[&quot;pubno&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+
+$pn = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $pn);
+if ( !$pn )
+    $pn = 999;
+
+$dp = $_criteria[&quot;doPublish&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$dp = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $dp);
+if ( !$dp )$dp = &quot;0&quot;;
+$lsd = $_criteria[&quot;logssince&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$lsd = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $lsd);
+$lgt = $_criteria[&quot;logtypes&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$lgt = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $lgt);
+$wkd = $_criteria[&quot;weekday&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$wkd = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $wkd);
+$dologs = &quot;0&quot;;
+if ( $wkd ) $dologs = &quot;1&quot;;
+$weekdays = explode ( &quot;,&quot;, $wkd);
+foreach ( $weekdays as $k =&gt; $day )
+{
+     $weekdays[$k]++;
+     
+}
+$wkd = implode (&quot;,&quot;, $weekdays);
+$basedir = $_criteria[&quot;transferdir&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$basedir = preg_replace ( &quot;/'/&quot;, &quot;&quot;, $basedir);
+
+$cop = $_criteria[&quot;operator&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$cvh = $_criteria[&quot;vehicle&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+$cbd = $_criteria[&quot;build&quot;]-&gt;get_criteria_value(&quot;VALUE&quot;);
+if ( !$cvh &amp;&amp; !$cbd)
+{
+   trigger_error (&quot;You must enter some vehicles or stops&quot;);
+   return;
+}
+
+$conn_id = $ds;
+
+
+$sql = 
+&quot;SELECT 
+build_code, build_type
+FROM operator,vehicle, unit_build
+WHERE 1 = 1 
+AND operator.operator_id = vehicle.operator_id
+AND vehicle.build_id = unit_build.build_id
+&quot;;
+if ( $cvh )
+    $sql .= &quot; AND vehicle.vehicle_id IN ($cvh)&quot;;
+else
+    $sql .= &quot; AND vehicle.vehicle_id IN (-1)&quot;;
+if ( $cop )$sql .= &quot; AND operator.operator_id IN ($cop)&quot;;
+
+$sql .= &quot; UNION&quot;;
+$sql .= &quot; SELECT 
+build_code, build_type
+FROM unit_build, display_point
+WHERE 1 = 1 
+AND unit_build.build_id = display_point.build_id
+&quot;;
+if ( $cbd )
+    $sql .= &quot; AND build_code IN ($cbd)&quot;;
+else
+    $sql .= &quot; AND build_code IN ('DONTFIND')&quot;;
+
+
+//$sql = $sql.&quot; INTO TEMP t_veh WITH NO LOG&quot;;
+//echo $sql.&quot;&lt;BR&gt;&quot;;
+
+
+//if ( !$_connection-&gt;Execute($sql) )
+//{
+//    print $_connection-&gt;ErrorMsg();
+//    return;
+//}
+
+//$sql = &quot;SELECT build_code FROM t_veh&quot;;
+
+
+$rid = executePDOQuery($sql, $conn_id );
+
+if ( !file_exists ( $basedir  ) )
+{
+   trigger_error (&quot;Transfer Area $basedir does not exist&quot;);
+   return;
+}
+
+if ( !is_writeable ( $basedir  ) )
+{
+    trigger_error (&quot;Transfer area $basedir is not writeable - cannot write transfer instructions&quot;);
+    return;
+}
+
+$impdir = $basedir.&quot;/import&quot;;
+$expdir = $basedir.&quot;/export&quot;;
+
+if ( !file_exists ( $impdir  ) )
+{
+       if ( !mkdir ( $impdir ) )
+       {
+           trigger_error (&quot;Failed to create import area $impdir&quot;);
+           return;
+       }
+}
+
+
+$addresses = $basedir.&quot;/export/address.conf&quot;;
+if ( !file_exists ( $addresses  ) )
+{
+   trigger_error (&quot;Address File $addresses does not exist&quot;);
+   return;
+}
+
+$addtxt = file_get_contents( $addresses );
+$addtxt = &quot;&quot;;
+
+$row = fetchPDO ($rid, &quot;NEXT&quot;);
+while(is_array($row))
+{
+
+   $build = $row[&quot;build_code&quot;];
+   $buildtype = $row[&quot;build_type&quot;];
+   $bt = $buildtype;
+   $compress = &quot;&quot;;
+   if ( $buildtype == &quot;C&quot; ) { $bt = &quot;CENTURION&quot;;}
+   if ( $buildtype == &quot;V&quot; ) { $bt = &quot;OVS&quot;;  $compress = &quot;1&quot;; }
+   if ( $buildtype == &quot;3&quot; ) { $bt = &quot;OBU3&quot;; }
+
+   $prog_dir = $basedir.&quot;/import/$build&quot;;
+
+   if ( !file_exists ( $prog_dir  ) )
+   {
+       if ( !mkdir ( $prog_dir ) )
+       {
+           trigger_error (&quot;Failed to create build transfer directory $proj_dir&quot;);
+           return;
+       }
+   }
+
+   $inst = &quot;&quot;;
+   if ( $wkd )
+    $inst .= sprintf(&quot;logWeekdays=${wkd}%c&quot;,10);
+   if ( $lgt )
+    $inst .= sprintf(&quot;logFilters=${lgt}%c&quot;,10);
+   if ( $lsd )
+    $inst .= sprintf(&quot;logSinceDays=${lsd}%c&quot;,10);
+   if ( $dp == &quot;2&quot; )
+    $inst .= sprintf(&quot;uploadFilters=routes%c&quot;,10);
+
+
+   $transfercfg = $basedir.&quot;/export/build/$build/transfer.cfg&quot;;
+   $retval = file_put_contents ($transfercfg, $inst );
+   $lastlog = $basedir.&quot;/import/$build/lastlog&quot;;
+   $retval = file_put_contents ($lastlog, &quot;&quot; );
+   $proglog = $basedir.&quot;/import/$build/proglog&quot;;
+   $retval = file_put_contents ($proglog, &quot;0,????,$build,???,WAITING,0, , ,WAITING,0,0&quot; );
+
+
+   $dpp = $dp;
+   if ( $dpp &gt; 1 ) $dpp = 1;
+   $addtxt .= sprintf(&quot;$build GPRS $bt $pn $dologs $dpp $pn COMM $compress %c&quot;,10);
+
+   
+   $row = fetchPDO ($rid, &quot;NEXT&quot;);
+
+}
+$retval = file_put_contents( $addresses.&quot;xx&quot;, $addtxt );
+$retval = file_put_contents( $addresses, $addtxt );
+if ( !$retval )
+           trigger_error (&quot;Failed to trigger automatic download - failed to write to $addresses&quot;); 
+
+}
+
+function fetchPDO( $in_stmt, $in_type = &quot;NEXT&quot; )
+{
+        $result = $in_stmt-&gt;FetchRow();
+        return $result;
+}
+
+function showPDOError( $in_conn )
+{
+        $info = $in_conn-&gt;errorInfo();
+        echo &quot;Error &quot;.$info[1].&quot;&lt;BR&gt;&quot;.
+                $info[2];
+}
+function executePDOQuery( $in_sql, &amp;$in_conn )
+{
+        //echo &quot;&lt;br&gt;&lt;br&gt;$in_sql&lt;br&gt;&quot;;
+        $rid =  $in_conn-&gt;Execute($in_sql);
+        if ( !$rid )
+        {
+                print $in_conn-&gt;ErrorMsg();
+                echo &quot;&lt;br&gt;$in_sql&lt;br&gt;&quot;;
+                die;
+        }
+        return $rid;
+}
+
+</PreExecuteCode><bodyDisplay>show</bodyDisplay><graphDisplay>show</graphDisplay></Format><Datasource><SourceType>database</SourceType><SourceConnection><DatabaseType></DatabaseType><DatabaseName>centurion</DatabaseName><HostName>centlive_tcp</HostName><ServiceName>?Unknown?</ServiceName><UserName></UserName><Password></Password></SourceConnection></Datasource><EntryForm><Query><TableSql>t_progress, unit_build, outer vehicle</TableSql><WhereSql>    
+AND t_progress.build = unit_build.build_code 
+AND unit_build.build_id = vehicle.build_id</WhereSql><GroupSql></GroupSql><RowSelection>all</RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>id</Name><TableName></TableName><ColumnName>id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>pub_id</Name><TableName></TableName><ColumnName>pub_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>timestamp</Name><TableName></TableName><ColumnName>timestamp</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>build</Name><TableName></TableName><ColumnName>build</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>ip_address</Name><TableName></TableName><ColumnName>ip_address</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>activity</Name><TableName></TableName><ColumnName>activity</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>dummy</Name><TableName></TableName><ColumnName>dummy</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>srcfilename</Name><TableName></TableName><ColumnName>srcfilename</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>dstfilename</Name><TableName></TableName><ColumnName>dstfilename</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>result</Name><TableName></TableName><ColumnName>result</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>transtime</Name><TableName></TableName><ColumnName>transtime</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>transsize</Name><TableName></TableName><ColumnName>transsize</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>basepath</Name><TableName></TableName><ColumnName>basepath</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>vehicle_code</Name><TableName></TableName><ColumnName>vehicle_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>arrival_date</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength></ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos>5%</group_header_label_xpos><group_header_data_xpos>20%</group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn><QueryColumn><Name>refresh</Name><TableName></TableName><ColumnName></ColumnName><ColumnType></ColumnType><ColumnLength></ColumnLength><Format><column_display>hide</column_display><content_type>plain</content_type><ColumnStartPDF></ColumnStartPDF><justify>left</justify><ColumnWidthPDF></ColumnWidthPDF><ColumnWidthHTML></ColumnWidthHTML><column_title></column_title><tooltip></tooltip><group_header_label></group_header_label><group_header_label_xpos></group_header_label_xpos><group_header_data_xpos></group_header_data_xpos><group_trailer_label></group_trailer_label></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>vehicle_code</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>timestamp</Name><OrderType>ASC</OrderType></OrderColumn><OrderColumn><Name>id</Name><OrderType></OrderType></OrderColumn></OrderColumns><PreSQLS></PreSQLS></Query><Assignments><Assignment><AssignName>dstfilename</AssignName><Expression>'&lt;a href=&quot;/infohost/cgi-bin/supportlog.sh?'.{basepath}.'/import/'.{build}.'/'.{dstfilename}.'&quot;&gt;'.{dstfilename}.'&lt;/a&gt;'</Expression><Condition>{dstfilename}</Condition></Assignment><Assignment><AssignName>refresh</AssignName><Expression>'&lt;a href=&quot;/infohost/inforep/runedit.php?MANUAL_runmode=1&amp;execute_mode=EXECUTE&amp;target_format=HTML&amp;target_show_body=1&amp;session_name='.session_id().'&quot;&gt;Refresh&lt;/a&gt;'</Expression><Condition></Condition></Assignment></Assignments><Criteria><CriteriaItem><Name>transferdir</Name><Title>Support Transfer Area</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>/opt/centurion/live/operators/global/data/export/RGB/vehicle/support</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>operator</Name><Title>Operator</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>operator_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>operator_code</OverviewColumn><MatchColumn>legal_name</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>operator</TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>operator_id</Name><TableName>operator</TableName><ColumnName>operator_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>operator_code</Name><TableName>operator</TableName><ColumnName>operator_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>legal_name</Name><TableName>operator</TableName><ColumnName>legal_name</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength></ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns><OrderColumn><Name>operator_code</Name><OrderType></OrderType></OrderColumn></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{operator_code}.'/'.{legal_name}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>vehicle</Name><Title>Vehicle</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LOOKUP</CriteriaType><CriteriaDisplay>TEXTFIELD</CriteriaDisplay><ExpandDisplay>MULTI</ExpandDisplay><ReturnColumn>vehicle_id</ReturnColumn><DisplayColumn>full</DisplayColumn><OverviewColumn>vehicle_code</OverviewColumn><MatchColumn>vehicle_code</MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql>vehicle, cent_user</TableSql><WhereSql>   
+AND (
+vehicle.operator_id = cent_user.operator_id
+OR cent_user.operator_id IS NULL )
+AND cent_user.usernm = USER    </WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns><QueryColumn><Name>vehicle_id</Name><TableName>vehicle</TableName><ColumnName>vehicle_id</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>vehicle_code</Name><TableName>vehicle</TableName><ColumnName>vehicle_code</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>vehicle_reg</Name><TableName>vehicle</TableName><ColumnName>vehicle_reg</ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn><QueryColumn><Name>full</Name><TableName></TableName><ColumnName></ColumnName><ColumnType>char</ColumnType><ColumnLength>30</ColumnLength><Format><column_display>show</column_display><content_type>plain</content_type><justify>left</justify></Format></QueryColumn></QueryColumns><OrderColumns></OrderColumns><Assignments><Assignment><AssignName>full</AssignName><Expression>{vehicle_code}.'/'.{vehicle_reg}</Expression><Condition></Condition></Assignment></Assignments></Query><CriteriaLinks><CriteriaLink><LinkFrom>vehicle</LinkFrom><LinkTo>operator</LinkTo><LinkClause>vehicle.operator_id</LinkClause></CriteriaLink></CriteriaLinks></CriteriaItem><CriteriaItem><Name>build</Name><Title>Build</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>weekday</Name><Title>Day Of Week</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList>Sunday=0,Monday=1,Tuesday=2,Wednesday=3,Thursday=4,Friday=5,Saturday=6</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>logtypes</Name><Title>Log Types</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>routelog</CriteriaDefaults><CriteriaList>Route Log=routelog,GPS Log=gpslog,Net Geo Log=netgeo</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>logssince</Name><Title>Days to Look Back</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>7</CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>runmode</Name><Title>Run Mode</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>RADIO</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults>2</CriteriaDefaults><CriteriaList>Action=2,Monitor=1</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>doPublish</Name><Title>Publish?</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>LIST</CriteriaType><CriteriaDisplay>CHECKBOX</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList>Full Publication=1,Timetables Only=2</CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem><CriteriaItem><Name>pubno</Name><Title>Publication Id</Title><QueryTableName></QueryTableName><QueryColumnName></QueryColumnName><CriteriaType>TEXTFIELD</CriteriaType><CriteriaDisplay>NOINPUT</CriteriaDisplay><ExpandDisplay>NOINPUT</ExpandDisplay><ReturnColumn></ReturnColumn><DisplayColumn></DisplayColumn><OverviewColumn></OverviewColumn><MatchColumn></MatchColumn><CriteriaDefaults></CriteriaDefaults><CriteriaList></CriteriaList><Query><TableSql></TableSql><WhereSql></WhereSql><GroupSql></GroupSql><RowSelection></RowSelection><SQL><QuerySql></QuerySql></SQL><QueryColumns></QueryColumns><OrderColumns></OrderColumns><Assignments></Assignments></Query><CriteriaLinks></CriteriaLinks></CriteriaItem></Criteria><Output><PageHeaders></PageHeaders><PageFooters></PageFooters><DisplayOrders><DisplayOrder><ColumnName>arrival_date</ColumnName><OrderNumber>1</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>id</ColumnName><OrderNumber>2</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>pub_id</ColumnName><OrderNumber>3</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>timestamp</ColumnName><OrderNumber>4</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>build</ColumnName><OrderNumber>5</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>ip_address</ColumnName><OrderNumber>6</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>activity</ColumnName><OrderNumber>7</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>dummy</ColumnName><OrderNumber>8</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>srcfilename</ColumnName><OrderNumber>9</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>dstfilename</ColumnName><OrderNumber>10</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>result</ColumnName><OrderNumber>11</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>transtime</ColumnName><OrderNumber>12</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>transsize</ColumnName><OrderNumber>13</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>basepath</ColumnName><OrderNumber>14</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>vehicle_code</ColumnName><OrderNumber>15</OrderNumber></DisplayOrder><DisplayOrder><ColumnName>refresh</ColumnName><OrderNumber>16</OrderNumber></DisplayOrder></DisplayOrders><Groups><Group><GroupName>REPORT_BODY</GroupName><BeforeGroupHeader>blankline</BeforeGroupHeader><AfterGroupHeader>blankline</AfterGroupHeader><BeforeGroupTrailer>blankline</BeforeGroupTrailer><AfterGroupTrailer>blankline</AfterGroupTrailer><GroupHeaders><GroupHeader><GroupHeaderColumn>refresh</GroupHeaderColumn></GroupHeader></GroupHeaders><GroupTrailers></GroupTrailers></Group><Group><GroupName>build</GroupName><BeforeGroupHeader>blankline</BeforeGroupHeader><AfterGroupHeader>blankline</AfterGroupHeader><BeforeGroupTrailer>blankline</BeforeGroupTrailer><AfterGroupTrailer>blankline</AfterGroupTrailer><GroupHeaders><GroupHeader><GroupHeaderColumn>vehicle_code</GroupHeaderColumn></GroupHeader><GroupHeader><GroupHeaderColumn>build</GroupHeaderColumn></GroupHeader></GroupHeaders><GroupTrailers></GroupTrailers></Group></Groups><Graphs></Graphs></Output></EntryForm></ReportQuery></Report>
