@@ -1,41 +1,22 @@
 <?php
 
-
-
 //include_once("../../../lib/config.php");
-
 require_once(dirname(__FILE__)."/../../lib/config.php");
-
 //yii::setPathOfAlias('bootstrap', dirname(__FILE__).'/../extensions/bootstrap');
-
 Yii::setPathOfAlias('editable', dirname(__FILE__).'/../extensions/x-editable');
 
-
-
-
-
 // uncomment the following to define a path alias
-
 // Yii::setPathOfAlias('local','path/to/local-folder');
-
 // This is the main Web application configuration. Any writable
-
 // CWebApplication properties can be configured here.
 
 return array(
-
     'basePath' => dirname(__FILE__) . DIRECTORY_SEPARATOR . '..',
-
     'name' => 'iConnex Web Interface',
-
     'defaultController' => 'golap/golap',
-
     // preloading 'log' component
-
     'preload' => array('log'),
-
     // autoloading model andt component classes
-
     'import' => array(
 
         'application.models.*',
@@ -48,8 +29,8 @@ return array(
 
         'application.extensions.redis.*',
 
-        'application.extensions.bootstrap.*'
-
+        'application.extensions.bootstrap.*',
+		'editable.*',
     ),
 
    //  'theme' => 'bootstrap',
@@ -170,7 +151,7 @@ return array(
 
 		//Script Map
 
-		'clientScript'=>array(
+		/*'clientScript'=>array(
 
 			'scriptMap'=>array(
 
@@ -178,7 +159,7 @@ return array(
 
 			),
 
-		 ),/**/
+		 ),*/
 
 		
 
@@ -214,7 +195,7 @@ return array(
 
             )
 
-        ), /**/
+        ), 
 
         //bootstrap component
 
@@ -261,7 +242,7 @@ return array(
          */
 
 	      'db'=>array(
-		      'connectionString' => 'mysql:host=127.0.0.1;dbname=nttests_ods;',
+		      'connectionString' => 'mysql:host=localhost;dbname=nttests_ods;',
 		      'emulatePrepare' => true,
 		      'username' => 'root',
 		      'password' => '',

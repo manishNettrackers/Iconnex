@@ -1,3 +1,6 @@
+<div class="container1">
+<div class="siglepage">
+
 <?php  Yii::app()->getComponent('bootstrap');
 $this->breadcrumbs=array(
 	'Control Panel',
@@ -166,4 +169,5 @@ function savedata()
 }
 
 </script>
-	
+	</div>
+    </div>

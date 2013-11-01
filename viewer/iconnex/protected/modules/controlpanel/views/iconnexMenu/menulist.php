@@ -1,3 +1,5 @@
+<div class="container1">
+<div class="siglepage">
 <?php Yii::app()->getComponent('bootstrap');
 $this->breadcrumbs=array(
 'Control Panel',
@@ -134,3 +136,6 @@ $this->beginWidget('bootstrap.widgets.TbModal', array('id' => 'myModal')); ?>
 		}
 	}
 	</script>
+ </div>     
+</div>    
+  

@@ -12,7 +12,7 @@ class IconnexUserController extends Controller
 {
 	function __construct($id,$module=null) {
         parent::__construct($id,$module);
-        $this->layout = "//layouts/".$this->getActionLayout();
+        $this->layout = "//layouts/".$this->layout.'_golap_account';
     }
 public function actionUser()
 	{

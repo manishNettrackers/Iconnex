@@ -11,12 +11,15 @@
 	<link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/ie.css" media="screen, projection" />
 	<![endif]-->
 
+    
 	<link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/main.css" />
     <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/admin.css" />
 	<link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/css/form.css" />
     
     <link rel="stylesheet" type="text/css" href="<?php echo Yii::app()->request->baseUrl; ?>/newcss/responsive.css" />
-    <?php Yii::app()->clientScript->registerCoreScript('jquery'); ?>
+    <?php 
+	
+	Yii::app()->clientScript->registerCoreScript('jquery'); ?>
 
 	<title><?php echo CHtml::encode($this->pageTitle); ?></title>
      <script type="text/javascript" src="<?php echo Yii::app()->request->baseUrl; ?>/newjs/jquery.popupoverlay.js"></script>
@@ -33,11 +36,14 @@
         <div class="submenu open_div">
           <ul>
             <li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=preferences/preferences/preferences">Account </a></li>
+            <li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=controlpanel/iconnexmenu/menu">Menu </a></li>
+            <li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=controlpanel/iconnexuser/user">User </a></li>
             <li><a href="<?php echo Yii::app()->request->baseUrl; ?>/index.php?r=/site/logout">Logout </a></li>
           </ul>
         </div>
       </div>
       <script type="text/javascript">
+	  //$.noConflict();
 				$('#click_pro').click(function(e) {
 					$('.open_div').slideDown(200); 
 					$(this).addClass("active"); 

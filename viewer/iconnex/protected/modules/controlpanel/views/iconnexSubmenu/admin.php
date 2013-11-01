@@ -1,3 +1,6 @@
+<div class="container1">
+<div class="siglepage">
+
 <?php  Yii::app()->getComponent('bootstrap');
 $lo_model = iconnexMenu ::model()->findByAttributes(array('menu_id'=>$_REQUEST['id']));
 $this->breadcrumbs=array(
@@ -162,4 +165,5 @@ function savedata()
 }
 
 </script>
-	
+</div>
+</div>	
