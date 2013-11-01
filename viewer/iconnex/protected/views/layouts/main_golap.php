@@ -36,8 +36,10 @@
         <div class="submenu open_div">
           <ul>
             <li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=preferences/preferences/preferences">Account </a></li>
-            <li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=controlpanel/iconnexmenu/menu">Menu </a></li>
-            <li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=controlpanel/iconnexuser/user">User </a></li>
+            <?php if(ucfirst(Yii::app()->user->name)=='Admin'){?>
+            	<li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=controlpanel/IconnexMenu/menu">Menu </a></li>
+            	<li><a href="<?php echo Yii::app()->request->baseUrl;?>/index.php?r=controlpanel/IconnexUser/user">User </a></li>
+            <?php }?>
             <li><a href="<?php echo Yii::app()->request->baseUrl; ?>/index.php?r=/site/logout">Logout </a></li>
           </ul>
         </div>
